@@ -27,6 +27,16 @@ ByteFlow Studio is a multiplatform desktop application that enables engineers, m
 - Q: What unit defines an Analysis block's buffer size? → A: Either — each Analysis block lets the user choose between number of samples or a time duration, configured per block.
 - Q: What data does a Session store — raw bytes, processed values, or both? → A: Both — raw timestamped bytes from Input blocks (enabling future pipeline replay) AND processed values as they enter each Analysis block (for immediate display on open). Each storage layer is independently toggleable by the user to manage file size.
 
+### Session 2026-03-21
+
+- Q: For WebSocket input, how many consecutive reconnect failures should trigger an error state? → A: 5 consecutive failed reconnects. The reconnect interval MUST be a user-configurable parameter on the block (default 1 000 ms). After 5 consecutive failures the block transitions to Error state and emits a BlockError; the user may clear the error and retry by reconfiguring the block.
+
+### Session 2026-03-20
+
+- Q: Should the + quick-add button be always visible or appear only on hover? → A: Appears when the user hovers over the source block; hidden on mouse-out. Dragging from a port handle (manual connect) is a separate, non-interfering gesture.
+- Q: Where should a block created via the + menu be positioned on the canvas? → A: Fixed offset +250 px to the right of the source block, same Y centre.
+- Q: Should the + menu filter block types by port compatibility? → A: Yes — show only block types with at least one input port whose DataType is compatible with the source output port.
+
 ---
 
 ## User Scenarios & Testing *(mandatory)*
@@ -147,7 +157,7 @@ An engineer ran a diagnostic test yesterday, and today wants to review the recor
 
 - **FR-001**: The application MUST provide a pannable and zoomable canvas on which blocks can be placed, moved, and connected.
 - **FR-002**: Users MUST be able to drag blocks from a categorised block library panel onto the canvas.
-- **FR-003**: The system MUST support automatic connection of compatible block outputs to inputs when blocks are placed in proximity, with the ability for users to manually draw connections by dragging from one port to another.
+- **FR-003**: Each output port on a block MUST display a '+' quick-add button when the user hovers over that block. Clicking the '+' button opens a block-creation menu listing only block types that have at least one input port with a DataType compatible with the source output port. Selecting a block type from the menu creates a new block pre-connected to the source output port, placed at +250 px to the right of the source block at the same Y centre. The '+' quick-add mechanism and the manual drag-connect gesture (dragging from a port handle to an existing block's port) MUST be fully independent and non-interfering: activating one does not disable or affect the other.
 - **FR-004**: The system MUST enforce that a flow requires at least one Input block and at least one Analysis block with a valid connection path before the flow can be started.
 - **FR-005**: The system MUST detect and prevent circular connections, providing a visual indication of the invalid connection attempt.
 - **FR-006**: Users MUST be able to delete individual blocks and connections, as well as delete a multi-block selection.
@@ -169,7 +179,7 @@ An engineer ran a diagnostic test yesterday, and today wants to review the recor
 
 #### Block Library — Analysis
 
-- **FR-014**: The system MUST provide at minimum the following Analysis block types: Line Chart, Bar Chart, Numeric Value Display, Data Table, and FFT Spectrum Viewer.
+- **FR-014**: The system MUST provide at minimum the following Analysis block types: Line Chart, Bar Chart, Value Display, Data Table, and FFT Spectrum Viewer. The Value Display block MUST accept both `numeric` streams (displaying formatted decimal values) and `raw-bytes` streams (displaying bytes as space-separated hexadecimal), enabling direct connection from an Input block without an intermediate Byte Parser.
 - **FR-015**: Analysis blocks MUST update their visualisation in real time as data flows through the connected pipeline.
 - **FR-016**: Each Analysis block MUST support a full-screen mode that expands the visualisation to fill the entire application window.
 - **FR-017**: Analysis blocks MUST allow configuration of display parameters (e.g., time window, axis labels, value units, number of decimal places shown).

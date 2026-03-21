@@ -44,7 +44,7 @@ All NEEDS CLARIFICATION items from Technical Context are resolved below.
 
 **Rationale**: Vue Flow is the only mature, actively maintained node-graph/DAG editor library for Vue 3. It supports custom node components (our Analysis blocks render charts inside nodes), pan/zoom, custom edges, programmatic layout via dagre, and multi-select. It uses Vue reactivity for efficient re-rendering (only changed elements update).
 
-**Integration Note**: Vue Flow is the canvas shell. Each block node is a custom `BlockNode.vue` component. Analysis blocks render their uPlot/PrimeVue chart inside the node bounds. For auto-layout, integrate `dagre` (`npm install dagre`) for initial connection layout.
+**Integration Note**: Vue Flow is the canvas shell. Each block node is a custom `BlockNode.vue` component. Analysis blocks render their uPlot/PrimeVue chart inside the node bounds. For auto-layout, integrate `dagre` (`pnpm add --save-exact dagre @types/dagre`) for initial connection layout.
 
 **Limitations**: Not a charting library — embedded charts (uPlot) handle all data visualisation inside nodes.
 
@@ -139,3 +139,21 @@ processed_data — timestamped float64 arrays per session per analysis block
 **Decision**: Pinia 2.x
 
 **Rationale**: The official Vue 3 state management solution, replacing Vuex. Lightweight, TypeScript-first, and directly supported by Vue DevTools. Three stores map to the three Wails services: `workflow`, `pipeline`, `session`.
+
+---
+
+## Decision 11: Frontend Package Manager
+
+**Decision**: pnpm 9+
+
+**Rationale**: Requested by the project owner as a replacement for npm. pnpm is faster than npm (content-addressable store, hard-linked modules), produces a deterministic lockfile (`pnpm-lock.yaml`), and enforces strict dependency isolation (phantom dependency prevention). Using `--save-exact` with pnpm writes exact version strings with no range prefixes, satisfying the Constitution's dependency-pinning requirement.
+
+**Wails Integration Impact**:
+- `wails.json` must specify pnpm for all frontend lifecycle commands (`installCommand`, `devCommand`, `buildCommand`).
+- `frontend/vite.config.ts` must pin `server.port: 5173` with `strictPort: true` so the Wails dev proxy always finds the Vite server on the expected port.
+- All `npm install` / `npm run` invocations in documentation and task scripts are replaced with `pnpm install` / `pnpm add` / `pnpm <script>`.
+
+**Alternatives Considered**:
+- npm: Default Wails scaffold tool; rejected per owner preference.
+- yarn: Similar benefits to pnpm; pnpm preferred for stricter isolation and faster installs.
+- bun: Fast but adds a non-standard runtime; not well-tested with Wails v3 scaffold.

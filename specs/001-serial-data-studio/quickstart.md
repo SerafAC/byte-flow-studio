@@ -1,6 +1,6 @@
 # Quickstart: ByteFlow Studio Development Environment
 
-**Feature**: 001-serial-data-studio | **Date**: 2026-03-19
+**Feature**: 001-serial-data-studio | **Date**: 2026-03-21
 
 ---
 
@@ -12,7 +12,10 @@
 |---|---|---|
 | Go | 1.23+ | https://go.dev/dl/ |
 | Node.js | 20+ LTS | https://nodejs.org |
+| pnpm | 9+ | `npm install -g pnpm` or https://pnpm.io/installation |
 | wails3 CLI | latest alpha | `go install github.com/wailsapp/wails/v3/cmd/wails3@latest` |
+
+> **Note**: pnpm is the required frontend package manager. npm is NOT used. After installing Node.js, install pnpm globally before running any `wails3` commands.
 
 ### Platform-Specific
 
@@ -48,7 +51,7 @@ wails3 doctor
 wails3 init -n "ByteFlowStudio" -t vue
 
 # Install frontend dependencies
-cd frontend && npm install
+cd frontend && pnpm install
 ```
 
 The `wails3 init` command creates:
@@ -56,6 +59,40 @@ The `wails3 init` command creates:
 - `app.go` — application service
 - `wails.json` — project config
 - `frontend/` — Vite + Vue 3 scaffold
+
+### Configure wails.json for pnpm
+
+After `wails3 init`, update `wails.json` to use pnpm for all frontend operations:
+
+```json
+{
+  "frontend": {
+    "dir": "frontend",
+    "installCommand": "pnpm install",
+    "devCommand": "pnpm dev",
+    "buildCommand": "pnpm build"
+  }
+}
+```
+
+> **Why**: Wails v3 reads `wails.json` to determine which package manager commands to run. Without this update, `wails3 dev` and `wails3 build` will call `npm install` / `npm run dev` instead of pnpm.
+
+### Configure vite.config.ts Dev Server Port
+
+Wails v3 expects the Vite dev server on a fixed port. Add `server.port: 5173` explicitly in `frontend/vite.config.ts` to prevent port conflicts:
+
+```typescript
+// frontend/vite.config.ts
+export default defineConfig({
+  // ... existing Wails v3 plugin config
+  server: {
+    port: 5173,   // explicit — required by Wails v3 dev proxy
+    strictPort: true,  // fail fast if port is busy
+  },
+})
+```
+
+> **Why**: Without `strictPort: true`, Vite silently increments the port when 5173 is busy, causing `wails3 dev` to open a blank window because the Wails proxy cannot find the frontend.
 
 ---
 
@@ -86,20 +123,22 @@ go get github.com/stretchr/testify
 cd frontend
 
 # DAG canvas editor
-npm install @vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
+pnpm add --save-exact @vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
 
 # PrimeVue UI components
-npm install primevue @primevue/themes primeicons
+pnpm add --save-exact primevue @primevue/themes primeicons
 
 # uPlot for high-frequency real-time charts
-npm install uplot uplot-wrappers
+pnpm add --save-exact uplot uplot-wrappers
 
 # State management
-npm install pinia
+pnpm add --save-exact pinia
 
 # Auto-layout for canvas (optional, used for "auto-arrange" feature)
-npm install dagre @types/dagre
+pnpm add --save-exact dagre @types/dagre
 ```
+
+> **Dependency pinning**: All dependencies use `--save-exact` to write exact versions (no `^` or `~`) into `package.json`, as required by the Constitution Technical Standards.
 
 ---
 
@@ -115,6 +154,7 @@ The dev server:
 - Reloads the frontend via Vite HMR
 - Regenerates TypeScript bindings in `frontend/bindings/` on each Go compilation
 - Opens the app window automatically
+- Proxies the Vite dev server at `http://localhost:5173`
 
 **Important**: After adding a new Go method to a Service, the bindings are regenerated on the next `wails3 dev` restart. The TypeScript types in `frontend/bindings/` are authoritative — do not edit them manually.
 
@@ -144,10 +184,10 @@ go test -v ./internal/input/...
 cd frontend
 
 # Run once
-npm run test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 ```
 
 ---
