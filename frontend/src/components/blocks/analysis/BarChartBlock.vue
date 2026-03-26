@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { Events } from '@wailsio/runtime'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
@@ -36,27 +36,24 @@ const isHistorical = ref(false)
 
 const MAX_SAMPLES = props.bufferSamples ?? 50
 
-// Maintain latest value per channel for bar display
 const latestValues = ref<number[]>([])
 
 let uplot: uPlot | null = null
+let ro: ResizeObserver | null = null
+let currentW = 400
+let currentH = 300
+
+const tsRing: number[] = []
+const valRings: number[][] = []
 
 function buildSeries(numChannels: number): uPlot.Series[] {
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
   const series: uPlot.Series[] = [{}]
   for (let i = 0; i < numChannels; i++) {
-    series.push({
-      label: `Ch ${i + 1}`,
-      stroke: colors[i % colors.length],
-      width: 2,
-    })
+    series.push({ label: `Ch ${i + 1}`, stroke: colors[i % colors.length], width: 2 })
   }
   return series
 }
-
-// Ring buffers for bar history
-const tsRing: number[] = []
-const valRings: number[][] = []
 
 function pushPoint(ts: number, values: number[]) {
   if (valRings.length < values.length) {
@@ -78,6 +75,22 @@ function redraw() {
   uplot.setData(data)
 }
 
+function rebuildChart(numChannels: number) {
+  uplot?.destroy()
+  if (!chartEl.value) return
+  const opts: uPlot.Options = {
+    title: props.title ?? '',
+    width: currentW,
+    height: currentH,
+    series: buildSeries(numChannels),
+    axes: [{ label: 'Time' }, { label: props.yLabel ?? '' }],
+    scales: { x: { time: true } },
+  }
+  const data: uPlot.AlignedData = [new Float64Array()]
+  for (let i = 0; i < numChannels; i++) data.push(new Float64Array())
+  uplot = new uPlot(opts, data, chartEl.value)
+}
+
 function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   if (event.data.blockId !== props.blockId) return
   for (const pt of event.data.points) {
@@ -93,22 +106,6 @@ function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   redraw()
 }
 
-function rebuildChart(numChannels: number) {
-  uplot?.destroy()
-  if (!chartEl.value) return
-  const opts: uPlot.Options = {
-    title: props.title ?? '',
-    width: chartEl.value.clientWidth || 300,
-    height: 160,
-    series: buildSeries(numChannels),
-    axes: [{ label: 'Time' }, { label: props.yLabel ?? '' }],
-    scales: { x: { time: true } },
-  }
-  const data: uPlot.AlignedData = [new Float64Array()]
-  for (let i = 0; i < numChannels; i++) data.push(new Float64Array())
-  uplot = new uPlot(opts, data, chartEl.value)
-}
-
 function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'historical' } }) {
   isHistorical.value = event.data.mode === 'historical'
   if (isHistorical.value) {
@@ -119,16 +116,36 @@ function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'histo
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   Events.On('pipeline:data', onData)
   Events.On('session:view-changed', onViewChanged)
   document.addEventListener('keydown', onEscapeKey)
+
+  await nextTick()
+  if (!chartEl.value) return
+
+  currentW = chartEl.value.clientWidth || 400
+  currentH = chartEl.value.clientHeight || 300
+
+  ro = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) {
+        currentW = width
+        currentH = height
+        uplot?.setSize({ width, height })
+      }
+    }
+  })
+  ro.observe(chartEl.value)
 })
 
 onUnmounted(() => {
   Events.Off('pipeline:data', onData)
   Events.Off('session:view-changed', onViewChanged)
   document.removeEventListener('keydown', onEscapeKey)
+  ro?.disconnect()
+  ro = null
   uplot?.destroy()
   uplot = null
 })
@@ -154,15 +171,34 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 8px;
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
-.chart-container { width: 100%; }
+.chart-container {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
 .historical-badge {
-  position: absolute; top: 6px; right: 8px;
-  font-size: 9px; color: #f59e0b; font-weight: bold; z-index: 1;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 9px;
+  color: #f59e0b;
+  font-weight: bold;
+  z-index: 1;
 }
 .bar-latest {
-  display: flex; gap: 12px; flex-wrap: wrap;
-  margin-top: 6px; font-family: monospace; font-size: 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-family: monospace;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 .bar-label { color: #9ca3af; margin-right: 4px; }
 .bar-value { color: #e2e8f0; font-weight: 600; }

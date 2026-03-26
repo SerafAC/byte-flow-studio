@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { Events } from '@wailsio/runtime'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
@@ -43,14 +43,14 @@ function onEscapeKey(e: KeyboardEvent) {
 
 const MAX_SAMPLES = props.bufferSamples ?? 500
 
-// Ring buffer: timestamps and values
 const tsRing: number[] = []
 const valRing: number[] = []
 
 let uplot: uPlot | null = null
+let ro: ResizeObserver | null = null
 
 function pushPoint(ts: number, v: number) {
-  tsRing.push(ts / 1000) // uPlot expects seconds
+  tsRing.push(ts / 1000)
   valRing.push(v)
   while (tsRing.length > MAX_SAMPLES) {
     tsRing.shift()
@@ -84,14 +84,11 @@ function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'histo
   }
 }
 
-onMounted(() => {
-  document.addEventListener('keydown', onEscapeKey)
-  if (!chartEl.value) return
-
-  const opts: uPlot.Options = {
+function buildOpts(width: number, height: number): uPlot.Options {
+  return {
     title: props.title ?? '',
-    width: chartEl.value.clientWidth || 300,
-    height: 180,
+    width,
+    height,
     series: [
       {},
       {
@@ -109,17 +106,40 @@ onMounted(() => {
       x: { time: true },
     },
   }
+}
 
-  uplot = new uPlot(opts, [new Float64Array(), new Float64Array()], chartEl.value)
-
+onMounted(async () => {
+  document.addEventListener('keydown', onEscapeKey)
   Events.On('pipeline:data', onData)
   Events.On('session:view-changed', onViewChanged)
+
+  // Wait for layout so clientWidth/clientHeight are accurate
+  await nextTick()
+  if (!chartEl.value) return
+
+  const w = chartEl.value.clientWidth || 400
+  const h = chartEl.value.clientHeight || 300
+
+  uplot = new uPlot(buildOpts(w, h), [new Float64Array(), new Float64Array()], chartEl.value)
+
+  // Resize uPlot whenever the container changes size
+  ro = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) {
+        uplot?.setSize({ width, height })
+      }
+    }
+  })
+  ro.observe(chartEl.value)
 })
 
 onUnmounted(() => {
   Events.Off('pipeline:data', onData)
   Events.Off('session:view-changed', onViewChanged)
   document.removeEventListener('keydown', onEscapeKey)
+  ro?.disconnect()
+  ro = null
   uplot?.destroy()
   uplot = null
 })
@@ -139,8 +159,16 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 8px;
   position: relative;
+  /* Fill the flex parent (.fullscreen-block has flex:1; min-height:0) */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 .chart-container {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
   width: 100%;
 }
 .historical-badge {

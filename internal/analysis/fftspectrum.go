@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"byteflow-studio/internal/pipeline"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func init() {
@@ -24,7 +22,6 @@ type fftSpectrumBlock struct {
 	id  string
 	cfg pipeline.BufferConfig
 	buf []pipeline.DataChunk
-	app *application.App
 }
 
 func (f *fftSpectrumBlock) ID() string                       { return f.id }
@@ -118,18 +115,6 @@ func (f *fftSpectrumBlock) Run(
 				return nil
 			}
 			f.addToBuffer(chunk)
-
-			if f.app != nil {
-				f.app.Event.Emit("pipeline:data", map[string]any{
-					"blockId": f.id,
-					"points": []map[string]any{
-						{
-							"timestamp": chunk.Timestamp,
-							"values":    chunk.Values,
-						},
-					},
-				})
-			}
 		}
 	}
 }

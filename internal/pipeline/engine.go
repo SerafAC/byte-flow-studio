@@ -279,14 +279,16 @@ func (e *Engine) Start(
 			outs = wrappedOuts
 		}
 
-		// Intercept processed data at Analysis block inputs for session recording
-		if block.Category() == CategoryAnalysis && recorder != nil {
+		// Intercept processed data at Analysis block inputs:
+		// always emit pipeline:data events to the frontend; record to session store if enabled.
+		if block.Category() == CategoryAnalysis {
 			wrappedIns := map[string]<-chan DataChunk{}
 			for portID, ch := range ins {
 				interceptCh := make(chan DataChunk, 64)
 				wrappedIns[portID] = interceptCh
 				originalCh := ch
 				sesID := sessionID
+				bID := bIDCopy
 				e.wg.Add(1)
 				go func() {
 					defer e.wg.Done()
@@ -298,12 +300,25 @@ func (e *Engine) Start(
 							if !ok2 {
 								return
 							}
-							_ = recorder.AppendProcessed(sesID, session.ProcessedDataRecord{
-								SessionID: sesID,
-								BlockID:   bIDCopy,
-								Timestamp: chunk.Timestamp,
-								Values:    chunk.Values,
+							// Emit live data event to frontend
+							e.emitEvent("pipeline:data", map[string]any{
+								"blockId": bID,
+								"points": []map[string]any{
+									{
+										"timestamp": chunk.Timestamp,
+										"values":    chunk.Values,
+									},
+								},
 							})
+							// Record to session store if enabled
+							if recorder != nil {
+								_ = recorder.AppendProcessed(sesID, session.ProcessedDataRecord{
+									SessionID: sesID,
+									BlockID:   bID,
+									Timestamp: chunk.Timestamp,
+									Values:    chunk.Values,
+								})
+							}
 							select {
 							case interceptCh <- chunk:
 							case <-ctx.Done():
@@ -442,6 +457,7 @@ func (e *Engine) Resume() error {
 	e.state = FlowStateRunning
 	close(e.resumeCh)
 	e.pauseCh = make(chan struct{})
+	e.resumeCh = make(chan struct{})
 	e.emitStateChangedLocked()
 	return nil
 }

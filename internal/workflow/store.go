@@ -21,6 +21,11 @@ func OpenStore(path string) (*Store, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
+	// SQLite requires a single connection: in-memory databases are per-connection
+	// (multiple pool connections each get an empty DB), and file-based SQLite
+	// supports only one writer at a time regardless.
+	db.SetMaxOpenConns(1)
+
 	s := &Store{db: db}
 	if err := s.initSchema(); err != nil {
 		db.Close()

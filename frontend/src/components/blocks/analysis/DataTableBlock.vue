@@ -81,10 +81,9 @@ onUnmounted(() => {
     <div v-if="isHistorical" class="historical-badge">HISTORICAL</div>
     <DataTable
       :value="rows"
-      :scroll-height="'200px'"
+      scroll-height="flex"
       scrollable
-      virtual-scroller-options="{ itemSize: 28 }"
-      class="p-datatable-sm"
+      class="p-datatable-sm dt-fill"
     >
       <Column field="timestamp" header="Timestamp" style="min-width: 160px; font-family: monospace; font-size: 11px;" />
       <Column
@@ -104,6 +103,18 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 8px;
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+:deep(.dt-fill) {
+  flex: 1;
+  min-height: 0;
+}
+:deep(.dt-fill .p-datatable-wrapper) {
+  flex: 1;
+  min-height: 0;
 }
 .historical-badge {
   position: absolute;

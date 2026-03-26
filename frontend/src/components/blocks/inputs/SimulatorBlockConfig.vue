@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import { updateBlockParams } from '../../../services/wails'
@@ -31,6 +31,8 @@ async function save() {
     sampleRateHz: sampleRateHz.value,
   })
 }
+
+onUnmounted(save)
 </script>
 
 <template>
@@ -41,19 +43,19 @@ async function save() {
     </div>
     <div class="field">
       <label>Frequency (Hz)</label>
-      <InputNumber v-model="frequencyHz" :min="0.001" :max="1000" :step="0.1" :min-fraction-digits="1" @blur="save" />
+      <InputNumber v-model="frequencyHz" :min="0.001" :max="1000" :step="0.1" :min-fraction-digits="1" @update:model-value="save" />
     </div>
     <div class="field">
       <label>Amplitude</label>
-      <InputNumber v-model="amplitude" :step="0.1" :min-fraction-digits="1" @blur="save" />
+      <InputNumber v-model="amplitude" :step="0.1" :min-fraction-digits="1" @update:model-value="save" />
     </div>
     <div class="field">
       <label>DC Offset</label>
-      <InputNumber v-model="offset" :step="0.1" :min-fraction-digits="1" @blur="save" />
+      <InputNumber v-model="offset" :step="0.1" :min-fraction-digits="1" @update:model-value="save" />
     </div>
     <div class="field">
       <label>Sample Rate (Hz)</label>
-      <InputNumber v-model="sampleRateHz" :min="1" :max="10000" :step="10" @blur="save" />
+      <InputNumber v-model="sampleRateHz" :min="1" :max="10000" :step="10" @update:model-value="save" />
     </div>
   </div>
 </template>

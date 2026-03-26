@@ -98,6 +98,12 @@ onUnmounted(() => {
   padding: 12px;
   min-width: 120px;
   text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .vd-label {

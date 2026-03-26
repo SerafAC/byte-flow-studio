@@ -463,3 +463,42 @@ func TestEngineBackpressureFrameDrop(t *testing.T) {
 
 	require.NoError(t, engine.Stop())
 }
+
+// TestEngineMultiplePauseResumeCycles verifies that multiple Pause→Resume cycles do not panic
+// with "close of closed channel" (regression test for the resumeCh double-close bug).
+func TestEngineMultiplePauseResumeCycles(t *testing.T) {
+	engine := NewEngine()
+
+	inBlock := &stubInputBlock{id: "in1", chunks: nil}
+	anBlock := &stubAnalysisBlock{id: "an1"}
+
+	wf := makeTestWorkflow(
+		[]workflow.BlockDef{
+			{ID: "in1", Type: "stub-input", Category: "input"},
+			{ID: "an1", Type: "stub-analysis", Category: "analysis"},
+		},
+		[]workflow.ConnectionDef{
+			{ID: "c1", FromBlockID: "in1", FromPortID: "out", ToBlockID: "an1", ToPortID: "in"},
+		},
+	)
+	portTypes := map[string]map[string]DataType{
+		"in1": {"out": DataTypeNum},
+		"an1": {"in": DataTypeNum},
+	}
+	blocks := map[string]Block{"in1": inBlock, "an1": anBlock}
+
+	require.NoError(t, engine.Start(wf, "sess-pr", portTypes, blocks, &noopRecorder{}))
+	assert.Equal(t, FlowStateRunning, engine.GetState())
+
+	// Three full Pause→Resume cycles — each Resume used to panic on the second iteration.
+	for i := 0; i < 3; i++ {
+		require.NoError(t, engine.Pause(), "Pause cycle %d", i)
+		assert.Equal(t, FlowStatePaused, engine.GetState())
+
+		require.NoError(t, engine.Resume(), "Resume cycle %d", i)
+		assert.Equal(t, FlowStateRunning, engine.GetState())
+	}
+
+	require.NoError(t, engine.Stop())
+	assert.Equal(t, FlowStateIdle, engine.GetState())
+}

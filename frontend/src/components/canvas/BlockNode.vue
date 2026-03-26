@@ -1,18 +1,64 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, type Component } from 'vue'
 import { Handle, Position, useNode } from '@vue-flow/core'
+import Dialog from 'primevue/dialog'
 import type { BlockDef } from '../../services/wails'
 import QuickAddMenu from './QuickAddMenu.vue'
+import { useFullscreen } from '../../composables/useFullscreen'
+import { useWorkflowStore } from '../../stores/workflow'
+import UartBlockConfig from '../blocks/inputs/UartBlockConfig.vue'
+import SimulatorBlockConfig from '../blocks/inputs/SimulatorBlockConfig.vue'
+import WebSocketBlockConfig from '../blocks/inputs/WebSocketBlockConfig.vue'
+import MovingAverageConfig from '../blocks/processing/MovingAverageConfig.vue'
+import FFTConfig from '../blocks/processing/FFTConfig.vue'
+import ScalingConfig from '../blocks/processing/ScalingConfig.vue'
+import ByteParserConfig from '../blocks/processing/ByteParserConfig.vue'
 
 const props = defineProps<{ data: BlockDef }>()
 
-const hovered = ref(false)
 const quickAddMenu = ref()
+const configOpen = ref(false)
 const { node } = useNode()
+const { enterFullscreen } = useFullscreen()
+const workflowStore = useWorkflowStore()
+
+const configComponentMap: Record<string, Component> = {
+  'uart': UartBlockConfig,
+  'simulator': SimulatorBlockConfig,
+  'websocket': WebSocketBlockConfig,
+  'moving-average': MovingAverageConfig,
+  'fft': FFTConfig,
+  'scaling': ScalingConfig,
+  'byte-parser': ByteParserConfig,
+}
+
+const configComponent = computed(() => configComponentMap[props.data.type] ?? null)
+const isSelected = computed(() => !!(node?.selected))
 
 function onQuickAdd(event: MouseEvent) {
   event.stopPropagation()
   quickAddMenu.value?.open(event)
+}
+
+// Double-click: analysis → fullscreen view; input/processing → open config
+function onDblClick(event: MouseEvent) {
+  if (props.data.category === 'analysis') {
+    event.stopPropagation()
+    enterFullscreen(props.data.id)
+  } else if (configComponent.value) {
+    event.stopPropagation()
+    configOpen.value = true
+  }
+}
+
+function openConfig(event: MouseEvent) {
+  event.stopPropagation()
+  configOpen.value = true
+}
+
+function deleteBlock(event: MouseEvent) {
+  event.stopPropagation()
+  workflowStore.removeBlock(props.data.id)
 }
 
 const categoryColor: Record<string, string> = {
@@ -35,7 +81,7 @@ const nodeColor = computed(() =>
 </script>
 
 <template>
-  <div class="block-node" :style="{ borderColor: nodeColor }" @mouseenter="hovered = true" @mouseleave="hovered = false">
+  <div class="block-node" :class="{ 'block-node--selected': isSelected }" :style="{ borderColor: nodeColor }" @dblclick="onDblClick">
     <!-- Status dot -->
     <span class="status-dot" :style="{ background: statusColor }" :title="data.status" />
 
@@ -49,6 +95,26 @@ const nodeColor = computed(() =>
     <div v-if="data.status === 'error' && data.errorMessage" class="block-error-msg">
       {{ data.errorMessage }}
     </div>
+
+    <!-- Action row: config + delete buttons; shown on hover, stays clear of output connector -->
+    <div class="action-row">
+      <button
+        v-if="configComponent"
+        class="action-btn"
+        title="Open configuration"
+        @mousedown.stop
+        @click.stop="openConfig($event)"
+      >⚙</button>
+      <button
+        class="action-btn action-btn--delete"
+        title="Delete block"
+        @mousedown.stop
+        @click.stop="deleteBlock($event)"
+      >✕</button>
+    </div>
+
+    <!-- Double-click hint for analysis blocks -->
+    <div v-if="data.category === 'analysis'" class="analysis-hint">double-click to view</div>
 
     <!-- Input handles (left side) -->
     <Handle
@@ -66,8 +132,8 @@ const nodeColor = computed(() =>
         type="source"
         :position="Position.Right"
       />
+      <!-- BUG4: visibility controlled via CSS :hover on .block-node parent -->
       <button
-        v-show="hovered"
         class="quick-add-btn"
         title="Quick add block"
         @mousedown.stop
@@ -82,9 +148,25 @@ const nodeColor = computed(() =>
       :source-data-type="data.category === 'input' && data.type === 'uart' ? 'raw' : 'numeric'"
       :source-x="node?.position.x ?? 0"
       :source-y="node?.position.y ?? 0"
-      @close="hovered = false"
     />
   </div>
+
+  <!-- BUG2: block config dialog (teleported by PrimeVue Dialog) -->
+  <Dialog
+    v-if="configComponent"
+    v-model:visible="configOpen"
+    :header="(data.label || data.type) + ' Configuration'"
+    :modal="true"
+    :draggable="false"
+    :style="{ width: '380px' }"
+    append-to="body"
+  >
+    <component
+      :is="configComponent"
+      :block-id="data.id"
+      :params="data.params ?? {}"
+    />
+  </Dialog>
 </template>
 
 <style scoped>
@@ -136,12 +218,56 @@ const nodeColor = computed(() =>
   word-break: break-word;
 }
 
+/* Selected node indicator */
+.block-node--selected {
+  box-shadow: 0 0 0 2px #f59e0b;
+}
+
+/* Action row: sits below node body, clear of the right-side output connector */
+.action-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  justify-content: flex-start;
+  visibility: hidden;
+}
+.block-node:hover .action-row { visibility: visible; }
+
+.action-btn {
+  background: rgba(255,255,255,0.1);
+  color: #9ca3af;
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.action-btn:hover { background: rgba(255,255,255,0.2); color: #e2e8f0; }
+.action-btn--delete:hover { background: rgba(239,68,68,0.3); color: #f87171; }
+
+/* BUG3: analysis hint text */
+.analysis-hint {
+  margin-top: 4px;
+  font-size: 9px;
+  color: #6b7280;
+  font-style: italic;
+  visibility: hidden;
+}
+.block-node:hover .analysis-hint { visibility: visible; }
+
 .out-port-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
+/* BUG4: quick-add button — hidden by default, CSS :hover on parent keeps it visible when hovered */
 .quick-add-btn {
   position: absolute;
   right: -36px;
@@ -159,6 +285,8 @@ const nodeColor = computed(() =>
   justify-content: center;
   z-index: 10;
   padding: 0;
+  visibility: hidden;
 }
+.block-node:hover .quick-add-btn { visibility: visible; }
 .quick-add-btn:hover { background: #2563eb; }
 </style>
