@@ -29,6 +29,23 @@ tasks:
     cmds:
       - task: "{{OS}}:run"
 
+  test:
+    summary: Runs all tests (frontend and internal)
+    cmds:
+      - task: test:frontend
+      - task: test:internal
+
+  test:frontend:
+    summary: Runs frontend tests
+    dir: frontend
+    cmds:
+      - npm run test
+
+  test:internal:
+    summary: Runs Go internal tests
+    cmds:
+      - go test ./internal/...
+
   dev:
     summary: Runs the application in development mode
     cmds:
