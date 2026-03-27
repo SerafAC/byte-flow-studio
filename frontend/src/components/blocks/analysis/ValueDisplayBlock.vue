@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Events } from '@wailsio/runtime'
+import { ref } from 'vue'
 import ContextMenu from 'primevue/contextmenu'
-import { useFullscreen } from '../../../composables/useFullscreen'
+import { useAnalysisBlock } from '../../../composables/useAnalysisBlock'
 
 const props = defineProps<{
   blockId: string
@@ -21,15 +20,6 @@ const emit = defineEmits<{
 
 const latest = ref<string>('—')
 const sparkline = ref<number[]>([])
-const isHistorical = ref(false)
-const { enterFullscreen: fsEnter, exitFullscreen: fsExit } = useFullscreen()
-
-const contextMenu = ref()
-const contextMenuItems = [
-  { label: 'Full Screen', icon: 'pi pi-window-maximize', command: () => { fsEnter(props.blockId); emit('fullscreen:enter', { blockId: props.blockId }) } },
-]
-
-function onEscapeKey(e: KeyboardEvent) { if (e.key === 'Escape') { fsExit(); emit('fullscreen:exit') } }
 
 function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   if (event.data.blockId !== props.blockId) return
@@ -51,24 +41,11 @@ function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   }
 }
 
-function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'historical' } }) {
-  isHistorical.value = event.data.mode === 'historical'
-  if (isHistorical.value) {
-    latest.value = '—'
-    sparkline.value = []
-  }
-}
-
-onMounted(() => {
-  Events.On('pipeline:data', onData)
-  Events.On('session:view-changed', onViewChanged)
-  document.addEventListener('keydown', onEscapeKey)
-})
-
-onUnmounted(() => {
-  Events.Off('pipeline:data', onData)
-  Events.Off('session:view-changed', onViewChanged)
-  document.removeEventListener('keydown', onEscapeKey)
+const { isHistorical, contextMenu, contextMenuItems } = useAnalysisBlock({
+  blockId: props.blockId,
+  onData,
+  onHistoricalMode: () => { latest.value = '—'; sparkline.value = [] },
+  emit,
 })
 </script>
 

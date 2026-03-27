@@ -18,6 +18,7 @@ import { usePipelineStore } from '../stores/pipeline'
 import { useSessionStore } from '../stores/session'
 import { useFullscreen } from '../composables/useFullscreen'
 import * as wails from '../services/wails'
+import { isPipelineTopologyError, isCorruptedFileError } from '../types/pipeline-errors'
 
 const analysisComponentMap: Record<string, Component> = {
   'line-chart': LineChartBlock,
@@ -73,7 +74,7 @@ async function onStart() {
   } catch (e: unknown) {
     const msg = String(e)
     // T107: show persistent banner for FR-004 topology errors
-    if (msg.includes('Input and one Analysis block') || msg.includes('not reachable')) {
+    if (isPipelineTopologyError(msg)) {
       startErrorBanner.value = msg
     } else {
       toast.add({ severity: 'error', summary: 'Start failed', detail: msg, life: 5000 })
@@ -156,7 +157,7 @@ async function doLoad(path: string) {
   } catch (e: unknown) {
     const msg = String(e)
     // T106: corrupted file recovery — offer Recovery Mode dialog
-    if (msg.includes('not a valid byteflow file')) {
+    if (isCorruptedFileError(msg)) {
       corruptedFilePath.value = path
     } else {
       toast.add({ severity: 'error', summary: 'Open failed', detail: msg, life: 5000 })

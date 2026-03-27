@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -19,19 +21,18 @@ const globalStubs = {
   Select: {
     inheritAttrs: false,
     props: ['modelValue', 'options', 'optionLabel', 'optionValue'],
-    emits: ['update:modelValue', 'change'],
+    emits: ['update:modelValue'],
     template: `<select :value="modelValue"
-      @change="$emit('update:modelValue', $event.target.value); $emit('change', $event.target.value)">
+      @change="$emit('update:modelValue', $event.target.value)">
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>`,
   },
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
 }
 
@@ -118,30 +119,32 @@ describe('ByteParserConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams with updated format on change', async () => {
-    const w = mountBlock()
-    const select = w.find('select')
-    await select.setValue('int16-le')
+  it('save() calls workflowStore.updateBlockParams with all current params', async () => {
+    const w = mountBlock({ format: 'int16-le', channels: 2, frameSize: 4 })
+    await (w.vm as any).save()
     await flushPromises()
-    // save() fires on @change before the async watcher updates frameSize
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-parser', expect.objectContaining({
+    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-parser', {
       format: 'int16-le',
-    }))
+      channels: 2,
+      frameSize: 4,
+    })
   })
 
-  it('saves watcher-updated frameSize when frame size input is blurred after format change', async () => {
+  it('save() includes watcher-updated frameSize after format change', async () => {
     const w = mountBlock({ format: 'int16-le', channels: 2, frameSize: 4 })
-    const select = w.find('select')
-    await select.setValue('float32-le')
-    await flushPromises()
-    // Watcher has now updated frameSize to 4*2=8; trigger save via blur
-    const inputs = w.findAll('input[type="number"]')
-    await inputs[1].trigger('blur')
+    await w.find('select').setValue('float32-le')
+    await flushPromises() // watcher updates frameSize to 4*2=8
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-parser', {
       format: 'float32-le',
       channels: 2,
       frameSize: 8,
     })
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

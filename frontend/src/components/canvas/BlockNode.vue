@@ -2,6 +2,7 @@
 import { computed, ref, type Component } from 'vue'
 import { Handle, Position, useNode } from '@vue-flow/core'
 import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
 import type { BlockDef } from '../../services/wails'
 import QuickAddMenu from './QuickAddMenu.vue'
 import { useFullscreen } from '../../composables/useFullscreen'
@@ -21,6 +22,14 @@ const configOpen = ref(false)
 const { node } = useNode()
 const { enterFullscreen } = useFullscreen()
 const workflowStore = useWorkflowStore()
+
+// Ref to the mounted config component instance — exposes { save() }
+const configRef = ref<{ save: () => Promise<void> } | null>(null)
+
+async function saveConfig() {
+  await configRef.value?.save()
+  configOpen.value = false
+}
 
 const configComponentMap: Record<string, Component> = {
   'uart': UartBlockConfig,
@@ -151,9 +160,10 @@ const nodeColor = computed(() =>
     />
   </div>
 
-  <!-- BUG2: block config dialog (teleported by PrimeVue Dialog) -->
+  <!-- Config dialog: v-if on configOpen ensures the component is freshly
+       mounted each time the dialog opens, so it reads the latest saved params. -->
   <Dialog
-    v-if="configComponent"
+    v-if="configOpen && configComponent"
     v-model:visible="configOpen"
     :header="(data.label || data.type) + ' Configuration'"
     :modal="true"
@@ -163,9 +173,14 @@ const nodeColor = computed(() =>
   >
     <component
       :is="configComponent"
+      ref="configRef"
       :block-id="data.id"
       :params="data.params ?? {}"
     />
+    <template #footer>
+      <Button label="Cancel" severity="secondary" @click="configOpen = false" />
+      <Button label="Save" @click="saveConfig" />
+    </template>
   </Dialog>
 </template>
 

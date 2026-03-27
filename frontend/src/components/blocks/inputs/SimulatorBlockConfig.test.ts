@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -18,19 +20,18 @@ const globalStubs = {
   Select: {
     inheritAttrs: false,
     props: ['modelValue', 'options', 'optionLabel', 'optionValue'],
-    emits: ['update:modelValue', 'change'],
+    emits: ['update:modelValue'],
     template: `<select :value="modelValue"
-      @change="$emit('update:modelValue', $event.target.value); $emit('change', $event.target.value)">
+      @change="$emit('update:modelValue', $event.target.value)">
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>`,
   },
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
 }
 
@@ -102,23 +103,9 @@ describe('SimulatorBlockConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams when waveform changes', async () => {
-    const w = mountBlock()
-    await w.find('select').setValue('noise')
-    await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-sim', expect.objectContaining({ waveform: 'noise' }))
-  })
-
-  it('calls updateBlockParams when waveform changes to sawtooth', async () => {
-    const w = mountBlock()
-    await w.find('select').setValue('sawtooth')
-    await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-sim', expect.objectContaining({ waveform: 'sawtooth' }))
-  })
-
-  it('saves all current param values on waveform change', async () => {
-    const w = mountBlock({ frequencyHz: 10, amplitude: 3, offset: 0.5, sampleRateHz: 500 })
-    await w.find('select').setValue('square')
+  it('save() calls workflowStore.updateBlockParams with all current params', async () => {
+    const w = mountBlock({ waveform: 'square', frequencyHz: 10, amplitude: 3, offset: 0.5, sampleRateHz: 500 })
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-sim', {
       waveform: 'square',
@@ -129,10 +116,30 @@ describe('SimulatorBlockConfig', () => {
     })
   })
 
-  it('calls save on unmount (via onUnmounted hook)', async () => {
+  it('save() sends updated waveform after user changes value', async () => {
+    const w = mountBlock()
+    await w.find('select').setValue('noise')
+    await (w.vm as any).save()
+    await flushPromises()
+    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-sim', expect.objectContaining({ waveform: 'noise' }))
+  })
+
+  it('does NOT auto-save on waveform change (requires explicit save)', async () => {
+    const w = mountBlock()
+    await w.find('select').setValue('sawtooth')
+    await flushPromises()
+    expect(mocks.updateBlockParams).not.toHaveBeenCalled()
+  })
+
+  it('does NOT call save on unmount (no implicit save on close)', async () => {
     const w = mountBlock()
     w.unmount()
     await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledOnce()
+    expect(mocks.updateBlockParams).not.toHaveBeenCalled()
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

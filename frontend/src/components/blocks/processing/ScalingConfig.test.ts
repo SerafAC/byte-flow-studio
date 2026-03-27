@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -18,10 +20,9 @@ const globalStubs = {
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
 }
 
@@ -70,37 +71,33 @@ describe('ScalingConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams on scale blur', async () => {
+  it('save() calls workflowStore.updateBlockParams with current scale and offset', async () => {
     const w = mountBlock({ scale: 2, offset: 1 })
-    const inputs = w.findAll('input[type="number"]')
-    await inputs[0].trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-scale', { scale: 2, offset: 1 })
   })
 
-  it('calls updateBlockParams on offset blur', async () => {
-    const w = mountBlock({ scale: 1, offset: 5 })
-    const inputs = w.findAll('input[type="number"]')
-    await inputs[1].trigger('blur')
-    await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-scale', { scale: 1, offset: 5 })
-  })
-
-  it('saves updated scale after input and blur', async () => {
+  it('save() sends updated scale after user changes value', async () => {
     const w = mountBlock()
     const inputs = w.findAll('input[type="number"]')
     await inputs[0].setValue(10)
-    await inputs[0].trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-scale', expect.objectContaining({ scale: 10 }))
   })
 
-  it('saves updated offset after input and blur', async () => {
+  it('save() sends updated offset after user changes value', async () => {
     const w = mountBlock()
     const inputs = w.findAll('input[type="number"]')
     await inputs[1].setValue(-5)
-    await inputs[1].trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-scale', expect.objectContaining({ offset: -5 }))
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

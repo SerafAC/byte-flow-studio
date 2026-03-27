@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -20,10 +22,9 @@ const globalStubs = {
   Select: {
     inheritAttrs: false,
     props: ['modelValue', 'options', 'optionLabel', 'optionValue'],
-    emits: ['update:modelValue', 'change'],
+    emits: ['update:modelValue'],
     template: `<select :value="modelValue"
-      @change="$emit('update:modelValue', isNaN(Number($event.target.value)) ? $event.target.value : Number($event.target.value));
-               $emit('change', $event.target.value)">
+      @change="$emit('update:modelValue', isNaN(Number($event.target.value)) ? $event.target.value : Number($event.target.value))">
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>`,
   },
@@ -91,27 +92,45 @@ describe('FFTConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams when windowSize changes', async () => {
+  it('save() calls workflowStore.updateBlockParams with current params', async () => {
+    const w = mountBlock({ windowSize: 1024, windowFunction: 'hamming' })
+    await (w.vm as any).save()
+    await flushPromises()
+    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-fft', {
+      windowSize: 1024,
+      windowFunction: 'hamming',
+    })
+  })
+
+  it('save() sends updated windowSize after user changes value', async () => {
     const w = mountBlock()
     await w.findAll('select')[0].setValue('2048')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-fft', expect.objectContaining({ windowSize: 2048 }))
   })
 
-  it('calls updateBlockParams when windowFunction changes', async () => {
+  it('save() sends updated windowFunction after user changes value', async () => {
     const w = mountBlock()
     await w.findAll('select')[1].setValue('hamming')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-fft', expect.objectContaining({ windowFunction: 'hamming' }))
   })
 
-  it('saves both params together', async () => {
+  it('save() sends both params together', async () => {
     const w = mountBlock({ windowSize: 256, windowFunction: 'hann' })
     await w.findAll('select')[1].setValue('none')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-fft', {
       windowSize: 256,
       windowFunction: 'none',
     })
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

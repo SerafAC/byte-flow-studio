@@ -1,0 +1,4 @@
+/* Shared styles for all block configuration forms */
+.config-form { display: flex; flex-direction: column; gap: 10px; padding: 8px; font-size: 13px; }
+.field        { display: flex; flex-direction: column; gap: 4px; }
+label         { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; }

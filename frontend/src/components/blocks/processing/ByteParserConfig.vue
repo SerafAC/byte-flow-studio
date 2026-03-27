@@ -1,17 +1,19 @@
 <script setup lang="ts">
+import '../../../assets/config-form.css'
 import { ref, watch } from 'vue'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
-import { updateBlockParams } from '../../../services/wails'
+import type { ByteParserParams } from '../../../types/block-params'
+import { useBlockConfig } from '../../../composables/useBlockConfig'
 
 const props = defineProps<{
   blockId: string
-  params: Record<string, unknown>
+  params: ByteParserParams
 }>()
 
-const format = ref<string>((props.params.format as string) ?? 'float32-le')
-const channels = ref<number>((props.params.channels as number) ?? 1)
-const frameSize = ref<number>((props.params.frameSize as number) ?? 4)
+const format = ref<string>(props.params.format ?? 'float32-le')
+const channels = ref<number>(props.params.channels ?? 1)
+const frameSize = ref<number>(props.params.frameSize ?? 4)
 
 const formatOptions = [
   { label: 'Float32 LE', value: 'float32-le' },
@@ -34,34 +36,29 @@ watch([format, channels], () => {
   frameSize.value = (bytesPerSampleMap[format.value] ?? 4) * channels.value
 })
 
-async function save() {
-  await updateBlockParams(props.blockId, {
-    format: format.value,
-    channels: channels.value,
-    frameSize: frameSize.value,
-  })
-}
+const { save } = useBlockConfig(props.blockId, () => ({
+  format: format.value,
+  channels: channels.value,
+  frameSize: frameSize.value,
+}))
+
+defineExpose({ save })
 </script>
 
 <template>
   <div class="config-form">
     <div class="field">
       <label>Format</label>
-      <Select v-model="format" :options="formatOptions" option-label="label" option-value="value" @change="save" />
+      <Select v-model="format" :options="formatOptions" option-label="label" option-value="value" />
     </div>
     <div class="field">
       <label>Channels</label>
-      <InputNumber v-model="channels" :min="1" :max="32" :step="1" @blur="save" />
+      <InputNumber v-model="channels" :min="1" :max="32" :step="1" />
     </div>
     <div class="field">
       <label>Frame Size (bytes)</label>
-      <InputNumber v-model="frameSize" :min="1" :max="1024" :step="1" @blur="save" />
+      <InputNumber v-model="frameSize" :min="1" :max="1024" :step="1" />
     </div>
   </div>
 </template>
 
-<style scoped>
-.config-form { display: flex; flex-direction: column; gap: 10px; padding: 8px; font-size: 13px; }
-.field { display: flex; flex-direction: column; gap: 4px; }
-label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; }
-</style>

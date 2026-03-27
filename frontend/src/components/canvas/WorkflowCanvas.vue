@@ -9,6 +9,7 @@ import { useWorkflowStore } from '../../stores/workflow'
 import { usePipelineStore } from '../../stores/pipeline'
 import BlockNode from './BlockNode.vue'
 import type { BlockTypeDescriptor } from '../../services/wails'
+import { isCycleError } from '../../types/pipeline-errors'
 
 const workflowStore = useWorkflowStore()
 const pipelineStore = usePipelineStore()
@@ -44,7 +45,7 @@ async function onConnectEdge(conn: Connection) {
     )
   } catch (e: unknown) {
     const msg = String(e)
-    if (msg.includes('cycle')) {
+    if (isCycleError(msg)) {
       toast.add({ severity: 'warn', summary: 'Circular connection is not allowed', life: 3000 })
     } else {
       toast.add({ severity: 'error', summary: 'Connection failed', detail: msg, life: 3000 })

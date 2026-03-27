@@ -9,8 +9,13 @@ const mocks = vi.hoisted(() => ({
   listSerialPorts: vi.fn(),
 }))
 
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
+}))
+
 vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
   listSerialPorts: mocks.listSerialPorts,
 }))
 
@@ -20,19 +25,18 @@ const globalStubs = {
   Select: {
     inheritAttrs: false,
     props: ['modelValue', 'options', 'optionLabel', 'optionValue', 'placeholder'],
-    emits: ['update:modelValue', 'change'],
+    emits: ['update:modelValue'],
     template: `<select :value="modelValue"
-      @change="$emit('update:modelValue', $event.target.value); $emit('change', $event.target.value)">
+      @change="$emit('update:modelValue', $event.target.value)">
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>`,
   },
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
   Button: {
     inheritAttrs: false,
@@ -149,34 +153,42 @@ describe('UartBlockConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams when a port is selected', async () => {
+  it('save() calls workflowStore.updateBlockParams with all current params', async () => {
+    const w = mountBlock({ port: '/dev/ttyUSB0', baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' })
+    await (w.vm as any).save()
+    await flushPromises()
+    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-uart', {
+      port: '/dev/ttyUSB0',
+      baudRate: 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+    })
+  })
+
+  it('save() sends updated port after user selects one', async () => {
     mocks.listSerialPorts.mockResolvedValue([{ name: '/dev/ttyUSB0', description: '' }])
     const w = mountBlock()
     await flushPromises()
     await w.findAll('select')[0].setValue('/dev/ttyUSB0')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-uart', expect.objectContaining({
       port: '/dev/ttyUSB0',
     }))
   })
 
-  it('calls updateBlockParams when baud rate changes', async () => {
+  it('does NOT auto-save when port is selected (requires explicit save)', async () => {
+    mocks.listSerialPorts.mockResolvedValue([{ name: '/dev/ttyUSB0', description: '' }])
     const w = mountBlock()
     await flushPromises()
-    await w.findAll('select')[1].setValue('9600')
+    await w.findAll('select')[0].setValue('/dev/ttyUSB0')
     await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-uart', expect.objectContaining({
-      baudRate: '9600',
-    }))
+    expect(mocks.updateBlockParams).not.toHaveBeenCalled()
   })
 
-  it('calls updateBlockParams when parity changes', async () => {
+  it('exposes save() via defineExpose', () => {
     const w = mountBlock()
-    await flushPromises()
-    await w.findAll('select')[4].setValue('even')
-    await flushPromises()
-    expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-uart', expect.objectContaining({
-      parity: 'even',
-    }))
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

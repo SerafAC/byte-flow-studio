@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -18,18 +20,16 @@ const globalStubs = {
   InputText: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="text" :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', $event.target.value)" />`,
   },
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
 }
 
@@ -78,21 +78,21 @@ describe('WebSocketBlockConfig', () => {
 
   // ── URL validation ───────────────────────────────────────────────────────────
 
-  it('shows an error message for an http:// URL', async () => {
+  it('shows an error message for an http:// URL when save() is called', async () => {
     const w = mountBlock()
     const input = w.findAll('input[type="text"]')[0]
     await input.setValue('http://bad.url/data')
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(w.find('.error').exists()).toBe(true)
     expect(w.find('.error').text()).toContain('ws://')
   })
 
-  it('shows an error message for a plain hostname', async () => {
+  it('shows an error message for a plain hostname when save() is called', async () => {
     const w = mountBlock()
     const input = w.findAll('input[type="text"]')[0]
     await input.setValue('localhost:8080')
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(w.find('.error').exists()).toBe(true)
   })
@@ -101,22 +101,22 @@ describe('WebSocketBlockConfig', () => {
     const w = mountBlock()
     const input = w.findAll('input[type="text"]')[0]
     await input.setValue('ftp://wrong.protocol')
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).not.toHaveBeenCalled()
   })
 
   it('clears the error and saves for a valid ws:// URL', async () => {
     const w = mountBlock({ url: 'http://invalid' })
-    const input = w.findAll('input[type="text"]')[0]
-    // First trigger the error
-    await input.trigger('blur')
+    // Trigger validation error
+    await (w.vm as any).save()
     await flushPromises()
     expect(w.find('.error').exists()).toBe(true)
 
-    // Fix the URL
+    // Fix the URL and save again
+    const input = w.findAll('input[type="text"]')[0]
     await input.setValue('ws://valid.host:9000/data')
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(w.find('.error').exists()).toBe(false)
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-ws', expect.objectContaining({
@@ -128,7 +128,7 @@ describe('WebSocketBlockConfig', () => {
     const w = mountBlock()
     const input = w.findAll('input[type="text"]')[0]
     await input.setValue('wss://secure.example.com/ws')
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(w.find('.error').exists()).toBe(false)
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-ws', expect.objectContaining({
@@ -138,15 +138,27 @@ describe('WebSocketBlockConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('saves all params when valid URL is provided', async () => {
+  it('save() sends all params together for a valid URL', async () => {
     const w = mountBlock({ url: 'ws://host/path', subprotocol: 'mqtt', reconnectIntervalMs: 3000 })
-    const input = w.findAll('input[type="text"]')[0]
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-ws', {
       url: 'ws://host/path',
       subprotocol: 'mqtt',
       reconnectIntervalMs: 3000,
     })
+  })
+
+  it('does NOT auto-save when URL input changes (requires explicit save)', async () => {
+    const w = mountBlock()
+    const input = w.findAll('input[type="text"]')[0]
+    await input.setValue('ws://new.host/ws')
+    await flushPromises()
+    expect(mocks.updateBlockParams).not.toHaveBeenCalled()
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })

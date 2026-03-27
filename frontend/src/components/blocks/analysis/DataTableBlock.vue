@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Events } from '@wailsio/runtime'
+import { ref } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ContextMenu from 'primevue/contextmenu'
-import { useFullscreen } from '../../../composables/useFullscreen'
+import { useAnalysisBlock } from '../../../composables/useAnalysisBlock'
 
 const props = defineProps<{
   blockId: string
@@ -17,21 +16,11 @@ const emit = defineEmits<{
   (e: 'fullscreen:exit'): void
 }>()
 
-const { enterFullscreen: fsEnter, exitFullscreen: fsExit } = useFullscreen()
-
-const contextMenu = ref()
-const contextMenuItems = [
-  { label: 'Full Screen', icon: 'pi pi-window-maximize', command: () => { fsEnter(props.blockId); emit('fullscreen:enter', { blockId: props.blockId }) } },
-]
-
-function onEscapeKey(e: KeyboardEvent) { if (e.key === 'Escape') { fsExit(); emit('fullscreen:exit') } }
-
 interface TableRow { timestamp: string; values: string[] }
 interface DataPoint { timestamp: number; values?: number[] }
 
 const MAX_ROWS = props.maxRows ?? 200
 const rows = ref<TableRow[]>([])
-const isHistorical = ref(false)
 const numChannels = ref(1)
 
 function formatTs(ms: number): string {
@@ -54,24 +43,11 @@ function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   }
 }
 
-function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'historical' } }) {
-  isHistorical.value = event.data.mode === 'historical'
-  if (isHistorical.value) {
-    rows.value = []
-    numChannels.value = 1
-  }
-}
-
-onMounted(() => {
-  Events.On('pipeline:data', onData)
-  Events.On('session:view-changed', onViewChanged)
-  document.addEventListener('keydown', onEscapeKey)
-})
-
-onUnmounted(() => {
-  Events.Off('pipeline:data', onData)
-  Events.Off('session:view-changed', onViewChanged)
-  document.removeEventListener('keydown', onEscapeKey)
+const { isHistorical, contextMenu, contextMenuItems } = useAnalysisBlock({
+  blockId: props.blockId,
+  onData,
+  onHistoricalMode: () => { rows.value = []; numChannels.value = 1 },
+  emit,
 })
 </script>
 

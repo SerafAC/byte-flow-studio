@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { Events } from '@wailsio/runtime'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import ContextMenu from 'primevue/contextmenu'
-import { useFullscreen } from '../../../composables/useFullscreen'
+import { useAnalysisBlock } from '../../../composables/useAnalysisBlock'
 
 const props = defineProps<{
   blockId: string
@@ -24,22 +23,6 @@ const emit = defineEmits<{
 interface DataPoint { timestamp: number; values?: number[] }
 
 const chartEl = ref<HTMLDivElement | null>(null)
-const isHistorical = ref(false)
-const { enterFullscreen: fsEnter, exitFullscreen: fsExit } = useFullscreen()
-
-const contextMenu = ref()
-const contextMenuItems = [
-  { label: 'Full Screen', icon: 'pi pi-window-maximize', command: () => enterFullscreen() },
-]
-
-function enterFullscreen() {
-  fsEnter(props.blockId)
-  emit('fullscreen:enter', { blockId: props.blockId })
-}
-
-function onEscapeKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') { fsExit(); emit('fullscreen:exit') }
-}
 
 const MAX_SAMPLES = props.bufferSamples ?? 500
 
@@ -75,14 +58,12 @@ function onData(event: { data: { blockId: string; points: DataPoint[] } }) {
   redraw()
 }
 
-function onViewChanged(event: { data: { sessionId: string; mode: 'live' | 'historical' } }) {
-  isHistorical.value = event.data.mode === 'historical'
-  if (isHistorical.value) {
-    tsRing.length = 0
-    valRing.length = 0
-    redraw()
-  }
-}
+const { isHistorical, contextMenu, contextMenuItems } = useAnalysisBlock({
+  blockId: props.blockId,
+  onData,
+  onHistoricalMode: () => { tsRing.length = 0; valRing.length = 0; redraw() },
+  emit,
+})
 
 function buildOpts(width: number, height: number): uPlot.Options {
   return {
@@ -109,10 +90,6 @@ function buildOpts(width: number, height: number): uPlot.Options {
 }
 
 onMounted(async () => {
-  document.addEventListener('keydown', onEscapeKey)
-  Events.On('pipeline:data', onData)
-  Events.On('session:view-changed', onViewChanged)
-
   // Wait for layout so clientWidth/clientHeight are accurate
   await nextTick()
   if (!chartEl.value) return
@@ -135,9 +112,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  Events.Off('pipeline:data', onData)
-  Events.Off('session:view-changed', onViewChanged)
-  document.removeEventListener('keydown', onEscapeKey)
   ro?.disconnect()
   ro = null
   uplot?.destroy()

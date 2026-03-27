@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => ({
   updateBlockParams: vi.fn(),
 }))
 
-vi.mock('../../../services/wails', () => ({
-  updateBlockParams: mocks.updateBlockParams,
+vi.mock('../../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    updateBlockParams: mocks.updateBlockParams,
+  }),
 }))
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -18,10 +20,9 @@ const globalStubs = {
   InputNumber: {
     inheritAttrs: false,
     props: ['modelValue'],
-    emits: ['update:modelValue', 'blur'],
+    emits: ['update:modelValue'],
     template: `<input type="number" :value="modelValue"
-      @input="$emit('update:modelValue', +$event.target.value)"
-      @blur="$emit('blur')" />`,
+      @input="$emit('update:modelValue', +$event.target.value)" />`,
   },
 }
 
@@ -59,19 +60,24 @@ describe('MovingAverageConfig', () => {
 
   // ── Save behaviour ───────────────────────────────────────────────────────────
 
-  it('calls updateBlockParams on blur with current windowSize', async () => {
+  it('save() calls workflowStore.updateBlockParams with current windowSize', async () => {
     const w = mountBlock({ windowSize: 5 })
-    await w.find('input[type="number"]').trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-ma', { windowSize: 5 })
   })
 
-  it('saves updated windowSize after input and blur', async () => {
+  it('save() sends updated windowSize after user changes value', async () => {
     const w = mountBlock()
     const input = w.find('input[type="number"]')
     await input.setValue(25)
-    await input.trigger('blur')
+    await (w.vm as any).save()
     await flushPromises()
     expect(mocks.updateBlockParams).toHaveBeenCalledWith('block-ma', { windowSize: 25 })
+  })
+
+  it('exposes save() via defineExpose', () => {
+    const w = mountBlock()
+    expect(typeof (w.vm as any).save).toBe('function')
   })
 })
