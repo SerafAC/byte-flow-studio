@@ -338,6 +338,23 @@ func (s *WorkflowService) ListSerialPorts() ([]SerialPortInfo, error) {
 	return result, nil
 }
 
+// RestoreBlocks replaces the in-memory blocks and connections (used for undo/redo sync).
+func (s *WorkflowService) RestoreBlocks(blocks []workflow.BlockDef, connections []workflow.ConnectionDef) error {
+	if s.engine != nil && s.engine.GetState() == pipeline.FlowStateRunning {
+		return fmt.Errorf("cannot modify workflow while flow is Running")
+	}
+	if blocks == nil {
+		blocks = []workflow.BlockDef{}
+	}
+	if connections == nil {
+		connections = []workflow.ConnectionDef{}
+	}
+	s.current.Blocks = blocks
+	s.current.Connections = connections
+	s.current.UpdatedAt = time.Now().UnixMilli()
+	return nil
+}
+
 // GetCurrentWorkflow returns a pointer to the mutable current workflow (internal use).
 func (s *WorkflowService) GetCurrentWorkflow() *workflow.Workflow {
 	return s.current
