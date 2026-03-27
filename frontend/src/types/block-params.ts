@@ -39,3 +39,9 @@ export interface ByteParserParams {
   channels: number
   frameSize: number
 }
+
+export interface SamplerParams {
+  mode: 'every-n-samples' | 'first-in-window' | 'last-in-window' | 'first'
+  n: number
+  intervalMs: number
+}
