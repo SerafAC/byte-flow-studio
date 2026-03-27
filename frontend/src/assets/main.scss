@@ -1,0 +1,21 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Shared styles for all block configuration forms
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  padding: $space-md;
+  font-size: $font-size-lg;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+label {
+  @include field-label;
+}

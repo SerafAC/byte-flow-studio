@@ -127,31 +127,11 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-.line-chart-block {
-  background: #1e2d3d;
-  border-radius: 8px;
-  padding: 8px;
-  position: relative;
-  /* Fill the flex parent (.fullscreen-block has flex:1; min-height:0) */
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-.chart-container {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-}
-.historical-badge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 9px;
-  color: #f59e0b;
-  font-weight: bold;
-  z-index: 1;
-}
+<style lang="scss" scoped>
+@use '../../../assets/mixins' as *;
+
+// Fill the flex parent (.fullscreen-block has flex:1; min-height:0)
+.line-chart-block { @include analysis-block; }
+.chart-container  { @include chart-fill; }
+.historical-badge { @include historical-badge; }
 </style>

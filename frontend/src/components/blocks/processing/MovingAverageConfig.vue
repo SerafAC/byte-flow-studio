@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import '../../../assets/config-form.css'
+import '../../../assets/main.scss'
 import { ref } from 'vue'
 import InputNumber from 'primevue/inputnumber'
 import type { MovingAverageParams } from '../../../types/block-params'

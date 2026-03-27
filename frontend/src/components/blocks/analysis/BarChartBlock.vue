@@ -144,41 +144,23 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-.bar-chart-block {
-  background: #1e2d3d;
-  border-radius: 8px;
-  padding: 8px;
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-.chart-container {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-}
-.historical-badge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 9px;
-  color: #f59e0b;
-  font-weight: bold;
-  z-index: 1;
-}
+<style lang="scss" scoped>
+@use '../../../assets/variables' as *;
+@use '../../../assets/mixins' as *;
+
+.bar-chart-block { @include analysis-block; }
+.chart-container  { @include chart-fill; }
+.historical-badge { @include historical-badge; }
+
 .bar-latest {
   display: flex;
-  gap: 12px;
+  gap: $space-lg;
   flex-wrap: wrap;
-  margin-top: 6px;
-  font-family: monospace;
-  font-size: 12px;
+  margin-top: $space-sm;
+  font-family: $font-mono;
+  font-size: $font-size-md;
   flex-shrink: 0;
 }
-.bar-label { color: #9ca3af; margin-right: 4px; }
-.bar-value { color: #e2e8f0; font-weight: 600; }
+.bar-label { color: $text-secondary; margin-right: $space-xs; }
+.bar-value { color: $text-primary; font-weight: 600; }
 </style>

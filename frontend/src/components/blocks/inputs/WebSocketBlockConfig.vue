@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import '../../../assets/config-form.css'
+import '../../../assets/main.scss'
 import { ref } from 'vue'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'

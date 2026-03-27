@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import '../../../assets/config-form.css'
+import '../../../assets/main.scss'
 import { ref } from 'vue'
 import Select from 'primevue/select'
 import type { FFTParams } from '../../../types/block-params'

@@ -244,6 +244,28 @@ An engineer ran a diagnostic test yesterday, and today wants to review the recor
 
 ---
 
+## Technology Stack
+
+### Frontend
+- **Framework**: Vue 3.5 (Composition API, `<script setup>`)
+- **Language**: TypeScript 5.x
+- **Bundler**: Vite 5.x
+- **Styling**: SCSS via `sass` dev dependency — use `<style lang="scss">` in `.vue` SFCs; no Vite config required
+- **UI Library**: PrimeVue 4.x with `@primevue/themes`
+- **Canvas**: Vue Flow 1.x (node-based graph editor)
+- **Charting**: uPlot 1.x (high-performance time-series)
+- **State**: Pinia 2.x
+- **Desktop bridge**: Wails v3 alpha (`@wailsio/runtime`)
+
+### Backend
+- **Language**: Go 1.23+
+- **Serial I/O**: `go.bug.st/serial`
+- **DSP**: `gonum` (FFT)
+- **WebSocket**: `gorilla/websocket`
+- **Storage**: SQLite via `modernc.org/sqlite` (CGO-free) — single `.byteflow` file per workflow
+
+---
+
 ## Assumptions
 
 - The initial release targets individual users (single-user desktop application); multi-user collaboration and cloud sync are out of scope.

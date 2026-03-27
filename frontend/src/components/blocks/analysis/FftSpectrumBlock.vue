@@ -260,41 +260,23 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-.fft-spectrum-block {
-  background: #1e2d3d;
-  border-radius: 8px;
-  padding: 8px;
-  position: relative;
-  /* Fill the flex parent (.fullscreen-block has flex:1; min-height:0) */
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
+<style lang="scss" scoped>
+@use '../../../assets/variables' as *;
+@use '../../../assets/mixins' as *;
+
+// Fill the flex parent (.fullscreen-block has flex:1; min-height:0)
+.fft-spectrum-block { @include analysis-block; }
+.chart-container    { @include chart-fill; }
+.historical-badge   { @include historical-badge; }
+
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: #9ca3af;
-  margin-bottom: 4px;
+  gap: $space-md;
+  font-size: $font-size-base;
+  color: $text-secondary;
+  margin-bottom: $space-xs;
   flex-shrink: 0;
 }
-.log-toggle { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-.chart-container {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-}
-.historical-badge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 9px;
-  color: #f59e0b;
-  font-weight: bold;
-  z-index: 1;
-}
+.log-toggle { display: flex; align-items: center; gap: $space-xs; cursor: pointer; }
 </style>

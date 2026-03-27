@@ -1,0 +1,65 @@
+// ============================================================
+// Design tokens — import this file wherever variables are needed
+// ============================================================
+
+// Colors — semantic
+$color-primary:       #3b82f6; // blue
+$color-success:       #10b981; // emerald
+$color-warning:       #f59e0b; // amber
+$color-danger:        #ef4444; // red
+$color-danger-light:  #f87171; // red (softer)
+$color-secondary:     #8b5cf6; // purple
+$color-cyan:          #06b6d4; // cyan
+
+// Colors — backgrounds (dark-theme layers, deepest → lightest)
+$bg-root:    #1b2636; // app background
+$bg-card:    #1e2d3d; // analysis blocks, dialogs, fullscreen panels
+$bg-surface: #243447; // menu bar, status bar
+$bg-block:   #2d3f52; // library cards, tag backgrounds
+$bg-hover:   #3a5068; // hover state for library cards
+
+// Colors — borders
+$border-color: #3a4a5c;
+
+// Colors — text
+$text-primary:   #e2e8f0;
+$text-secondary: #9ca3af;
+$text-muted:     #6b7280;
+
+// Colors — status
+$status-connected: #34d399;
+$status-error:     $color-danger-light;
+$status-default:   $text-muted;
+
+// Spacing (use as padding / gap / margin values)
+$space-xs:  4px;
+$space-sm:  6px;
+$space-md:  8px;
+$space-lg:  12px;
+$space-xl:  16px;
+$space-2xl: 24px;
+
+// Border radii
+$radius-sm:   4px;
+$radius-md:   6px;
+$radius-lg:   8px;
+$radius-xl:   10px;
+$radius-full: 50%;
+
+// Typography
+$font-size-xs:   9px;
+$font-size-sm:   10px;
+$font-size-base: 11px;
+$font-size-md:   12px;
+$font-size-lg:   13px;
+$font-size-xl:   14px;
+$font-mono:      monospace;
+
+// Transitions
+$transition-fast: 0.15s;
+$transition-base: 0.3s;
+
+// Z-index layers
+$z-node:     10;
+$z-overlay:  9999;
+$z-recovery: 10000;

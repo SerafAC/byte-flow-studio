@@ -1,0 +1,55 @@
+@use 'variables' as *;
+
+// ============================================================
+// Mixins
+// ============================================================
+
+// Analysis block container — the shared layout used by all chart/display
+// blocks (LineChart, BarChart, DataTable, FftSpectrum, ValueDisplay …)
+@mixin analysis-block {
+  background: $bg-card;
+  border-radius: $radius-lg;
+  padding: $space-md;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+// Chart / canvas area that should fill the remaining space in an analysis block
+@mixin chart-fill {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+// Amber badge pinned to the top-right of a block indicating historical data
+@mixin historical-badge {
+  position: absolute;
+  top: $space-sm;
+  right: $space-md;
+  font-size: $font-size-xs;
+  color: $color-warning;
+  font-weight: bold;
+  z-index: 1;
+}
+
+// Uppercase, small metadata label (config forms, category headers, axis labels)
+@mixin field-label {
+  font-size: $font-size-base;
+  color: $text-secondary;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Inline tag / badge pill
+@mixin tag($bg: $bg-block, $color: $text-secondary) {
+  font-size: $font-size-sm;
+  background: $bg;
+  padding: 1px 5px;
+  border-radius: $radius-sm;
+  color: $color;
+}

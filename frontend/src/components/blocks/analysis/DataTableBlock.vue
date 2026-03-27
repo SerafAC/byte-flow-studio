@@ -73,32 +73,15 @@ const { isHistorical, contextMenu, contextMenuItems } = useAnalysisBlock({
   </div>
 </template>
 
-<style scoped>
-.data-table-block {
-  background: #1e2d3d;
-  border-radius: 8px;
-  padding: 8px;
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-:deep(.dt-fill) {
-  flex: 1;
-  min-height: 0;
-}
+<style lang="scss" scoped>
+@use '../../../assets/mixins' as *;
+
+.data-table-block { @include analysis-block; }
+.historical-badge { @include historical-badge; }
+
+:deep(.dt-fill),
 :deep(.dt-fill .p-datatable-wrapper) {
   flex: 1;
   min-height: 0;
-}
-.historical-badge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 9px;
-  color: #f59e0b;
-  font-weight: bold;
-  z-index: 1;
 }
 </style>
