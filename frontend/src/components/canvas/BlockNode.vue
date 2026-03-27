@@ -14,6 +14,7 @@ import MovingAverageConfig from '../blocks/processing/MovingAverageConfig.vue'
 import FFTConfig from '../blocks/processing/FFTConfig.vue'
 import ScalingConfig from '../blocks/processing/ScalingConfig.vue'
 import ByteParserConfig from '../blocks/processing/ByteParserConfig.vue'
+import SamplerConfig from '../blocks/processing/SamplerConfig.vue'
 
 const props = defineProps<{ data: BlockDef }>()
 
@@ -39,6 +40,7 @@ const configComponentMap: Record<string, Component> = {
   'fft': FFTConfig,
   'scaling': ScalingConfig,
   'byte-parser': ByteParserConfig,
+  'sampler': SamplerConfig,
 }
 
 const configComponent = computed(() => configComponentMap[props.data.type] ?? null)

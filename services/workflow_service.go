@@ -507,6 +507,13 @@ func blockTypeDescriptors() []BlockTypeDescriptor {
 			DefaultParams: map[string]any{"format": "float32-le", "channels": 1, "frameSize": 4},
 		},
 		{
+			Type:        "sampler",
+			Category:    pipeline.CategoryProcessing,
+			Label:       "Sampler",
+			Description: "Reduce stream rate: pass every N-th sample, first/last in a time window, or the first value only",
+			DefaultParams: map[string]any{"mode": "every-n-samples", "n": 10, "intervalMs": 100.0},
+		},
+		{
 			Type:        "value-display",
 			Category:    pipeline.CategoryAnalysis,
 			Label:       "Value Display",
