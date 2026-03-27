@@ -100,12 +100,7 @@ const nodeColor = computed(() =>
       <span class="block-badge" :style="{ background: nodeColor }">{{ data.category }}</span>
     </div>
 
-    <!-- Error tooltip -->
-    <div v-if="data.status === 'error' && data.errorMessage" class="block-error-msg">
-      {{ data.errorMessage }}
-    </div>
-
-    <!-- Action row: config + delete buttons; shown on hover, stays clear of output connector -->
+    <!-- Action row: config + delete buttons; floats above the block on hover -->
     <div class="action-row">
       <button
         v-if="configComponent"
@@ -120,6 +115,11 @@ const nodeColor = computed(() =>
         @mousedown.stop
         @click.stop="deleteBlock($event)"
       >✕</button>
+    </div>
+
+    <!-- Error tooltip -->
+    <div v-if="data.status === 'error' && data.errorMessage" class="block-error-msg">
+      {{ data.errorMessage }}
     </div>
 
     <!-- Double-click hint for analysis blocks -->
@@ -238,13 +238,15 @@ const nodeColor = computed(() =>
   box-shadow: 0 0 0 2px #f59e0b;
 }
 
-/* Action row: sits below node body, clear of the right-side output connector */
+/* Action row: floats above the block, revealed on hover */
 .action-row {
+  position: absolute;
+  top: -30px;
+  left: 0;
   display: flex;
   gap: 4px;
-  margin-top: 6px;
-  justify-content: flex-start;
   visibility: hidden;
+  z-index: 10;
 }
 .block-node:hover .action-row { visibility: visible; }
 
