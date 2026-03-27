@@ -238,13 +238,16 @@ const nodeColor = computed(() =>
   box-shadow: 0 0 0 2px #f59e0b;
 }
 
-/* Action row: floats above the block, revealed on hover */
+/* Action row: floats above the block, revealed on hover.
+   padding-bottom bridges the gap so the mouse can travel from block to buttons
+   without leaving the hover zone. */
 .action-row {
   position: absolute;
   top: -30px;
   left: 0;
   display: flex;
   gap: 4px;
+  padding-bottom: 8px;
   visibility: hidden;
   z-index: 10;
 }
