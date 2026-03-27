@@ -87,6 +87,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
   async function updateBlockParams(blockId: string, params: Record<string, unknown>) {
+    _pushHistory()
     await wails.updateBlockParams(blockId, params)
     const idx = blocks.value.findIndex(b => b.id === blockId)
     if (idx >= 0) {
@@ -95,6 +96,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
   async function updateBlockPosition(blockId: string, x: number, y: number) {
+    _pushHistory()
     await wails.updateBlockPosition(blockId, x, y)
     const idx = blocks.value.findIndex(b => b.id === blockId)
     if (idx >= 0) {

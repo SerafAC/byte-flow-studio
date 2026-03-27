@@ -43,20 +43,31 @@ const fullscreenComponent = computed(() =>
   fullscreenBlock.value ? (analysisComponentMap[fullscreenBlock.value.type] ?? null) : null
 )
 
-function onFullscreenEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape' && fullscreenBlockId.value) exitFullscreen()
-}
-
 // T107: persistent FR-004 error banner (dismissed on successful start)
 const startErrorBanner = ref<string | null>(null)
 
 // T106: corrupted file recovery state
 const corruptedFilePath = ref<string | null>(null)
 
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && fullscreenBlockId.value) {
+    exitFullscreen()
+    return
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+    e.preventDefault()
+    onOpen()
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    onSave()
+  }
+}
+
 onMounted(async () => {
   pipelineStore.subscribe()
   sessionStore.subscribe()
-  document.addEventListener('keydown', onFullscreenEscape)
+  document.addEventListener('keydown', onGlobalKeydown)
   await workflowStore.loadWorkflow()
   await sessionStore.loadSessions()
 })
@@ -64,7 +75,7 @@ onMounted(async () => {
 onUnmounted(() => {
   pipelineStore.unsubscribe()
   sessionStore.unsubscribe()
-  document.removeEventListener('keydown', onFullscreenEscape)
+  document.removeEventListener('keydown', onGlobalKeydown)
 })
 
 async function onStart() {
