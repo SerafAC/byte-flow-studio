@@ -274,6 +274,20 @@
 
 ---
 
+## Phase 10: Sampler Processing Block (FR-034)
+
+**Purpose**: Introduce the Sampler block so high-frequency numeric streams can be decimated before reaching any Analysis block (Value Display, Line Chart, Data Table, Bar Chart). Addresses the architectural gap where every data source produces a continuous stream but analysis blocks previously had no upstream rate-reduction primitive.
+
+**Rationale**: A separate processing block (Approach A) was chosen over embedding sampling inside Value Display, because it is reusable before *all* analysis blocks, is composable (fan-out from one Sampler to multiple Analysis blocks), and keeps the analysis block pattern thin.
+
+- [X] T116 [P] Write unit tests for the Sampler block in `internal/processing/sampler_test.go` (TDD — write before or alongside implementation): (a) `TestSamplerEveryNSamples` — feed 9 values with N=3, assert exactly values at positions 3, 6, 9 are forwarded and nothing else; (b) `TestSamplerFirstMode` — feed 5 values, assert exactly 1 passes (the first) and subsequent values are discarded; (c) `TestSamplerFirstInWindow` — feed chunks at timestamps 0, 50, 150 ms with interval=100 ms, assert chunks at 0 and 150 pass and chunk at 50 is dropped; (d) `TestSamplerLastInWindow` — send 3 values rapidly then wait for the ticker (50 ms window), assert only the last of the 3 is emitted; (e) `TestSamplerPreservesTimestamp` — assert output chunk Timestamp and SourceID equal those of the forwarded input chunk
+
+- [X] T117 Implement Sampler block in `internal/processing/sampler.go`: satisfies `pipeline.Block`; numeric-in / numeric-out; registers as `"sampler"` via `init()` calling `processing.Register()`; struct fields `mode string`, `n int`, `intervalMs float64`, mutex-protected state (`count`, `lastEmit int64`, `fired bool`); `Configure()` reads `mode`, `n`, `intervalMs` using package-local `toIntP()` and `toFloat()` helpers; `Run()` branches on mode — for `every-n-samples`, `first-in-window`, `first` uses a single channel-select loop with a mutex-protected `shouldEmit()` predicate; for `last-in-window` uses a dedicated `runLastInWindow()` method with `time.NewTicker` and a three-way select (`in`, `ticker.C`, `ctx.Done()`); forwarded chunks carry the original `Timestamp` and `SourceID`; add `BlockTypeDescriptor` entry in `services/workflow_service.go` `blockTypeDescriptors()` with `DefaultParams: map[string]any{"mode": "every-n-samples", "n": 10, "intervalMs": 100.0}`
+
+- [X] T118 [P] Add frontend support for the Sampler block: (1) append `SamplerParams` interface to `frontend/src/types/block-params.ts` with fields `mode: 'every-n-samples' | 'first-in-window' | 'last-in-window' | 'first'`, `n: number`, `intervalMs: number`; (2) create `frontend/src/components/blocks/processing/SamplerConfig.vue` — mode Select dropdown (4 options), InputNumber for N (visible only when `mode === 'every-n-samples'`, min 1, max 100 000), InputNumber for time window ms (visible only when mode is `first-in-window` or `last-in-window`, min 1, max 60 000); uses `useBlockConfig` composable and `defineExpose({ save })`; imports `main.scss`; (3) import `SamplerConfig` in `frontend/src/components/canvas/BlockNode.vue` and add `'sampler': SamplerConfig` to `configComponentMap`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

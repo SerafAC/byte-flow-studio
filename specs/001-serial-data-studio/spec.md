@@ -173,9 +173,10 @@ An engineer ran a diagnostic test yesterday, and today wants to review the recor
 
 #### Block Library — Processing
 
-- **FR-011**: The system MUST provide at minimum the following Processing block types: Moving Average, Summation, FFT (Fast Fourier Transform), Value Scaling/Offset, Byte Parser (extract typed values from raw byte frames), and Passthrough.
+- **FR-011**: The system MUST provide at minimum the following Processing block types: Moving Average, Summation, FFT (Fast Fourier Transform), Value Scaling/Offset, Byte Parser (extract typed values from raw byte frames), Passthrough, and Sampler.
 - **FR-012**: Processing blocks MUST accept one or more input streams and produce one or more output streams.
 - **FR-013**: Each Processing block MUST expose configurable parameters relevant to its operation (e.g., window size for Moving Average; frame format specification for Byte Parser).
+- **FR-034**: The Sampler Processing block MUST accept a numeric input stream and forward a subset of values to its numeric output stream according to one of four configurable modes: (1) **every-n-samples** — forward every N-th sample (count-based decimation, N ≥ 1); (2) **first-in-window** — forward the first sample received after a configurable time interval has elapsed since the last forwarded sample; (3) **last-in-window** — at the end of each fixed-duration time window, emit the last sample seen within that window (ticker-driven; no sample is emitted for an empty window); (4) **first** — forward only the very first sample received after the pipeline starts, then discard all subsequent samples. The Sampler block MUST preserve the original Timestamp and SourceID of every forwarded DataChunk unchanged.
 
 #### Block Library — Analysis
 
