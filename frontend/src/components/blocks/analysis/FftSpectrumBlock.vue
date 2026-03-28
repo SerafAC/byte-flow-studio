@@ -41,6 +41,8 @@ let lastBinCount = 0
 // Track current container size for rebuilds (e.g. log scale toggle)
 let currentW = 400
 let currentH = 300
+let offData: (() => void) | null = null
+let offView: (() => void) | null = null
 
 // Internal FFT: accumulate single-float samples when no FFT processing block is used.
 // Must be a power of 2; defaults to 512.
@@ -208,8 +210,8 @@ function initEmptyChart() {
 }
 
 onMounted(async () => {
-  Events.On('pipeline:data', onData)
-  Events.On('session:view-changed', onViewChanged)
+  offData = Events.On('pipeline:data', onData)
+  offView = Events.On('session:view-changed', onViewChanged)
   document.addEventListener('keydown', onEscapeKey)
 
   // Wait for layout so container dimensions are accurate
@@ -236,8 +238,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  Events.Off('pipeline:data', onData)
-  Events.Off('session:view-changed', onViewChanged)
+  offData?.()
+  offView?.()
   document.removeEventListener('keydown', onEscapeKey)
   ro?.disconnect()
   ro = null

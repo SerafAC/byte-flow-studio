@@ -64,13 +64,15 @@ async function onDelete(id: string) {
   await sessionStore.deleteSession(id)
 }
 
+let offStorageWarning: (() => void) | null = null
+
 onMounted(async () => {
   await loadConfig()
-  Events.On('session:storage-warning', onStorageWarning)
+  offStorageWarning = Events.On('session:storage-warning', onStorageWarning)
 })
 
 onUnmounted(() => {
-  Events.Off('session:storage-warning', onStorageWarning)
+  offStorageWarning?.()
 })
 </script>
 
