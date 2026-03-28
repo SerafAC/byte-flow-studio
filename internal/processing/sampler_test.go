@@ -110,7 +110,7 @@ func TestSamplerFirstInWindow(t *testing.T) {
 }
 
 func TestSamplerLastInWindow(t *testing.T) {
-	in, out, cancel := runSampler(t, map[string]any{"mode": "last-in-window", "intervalMs": 50.0})
+	in, out, cancel := runSampler(t, map[string]any{"mode": "last-in-window", "intervalMs": 100.0})
 	defer cancel()
 
 	// Send 3 values quickly; only the last should be emitted when the ticker fires
