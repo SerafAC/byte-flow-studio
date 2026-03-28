@@ -8,9 +8,15 @@ import (
 	"byteflow-studio/internal/pipeline"
 )
 
+// neverEmitted is a sentinel lastEmit value meaning "no sample has ever been
+// forwarded". It is negative-large enough that ts-neverEmitted always exceeds
+// any realistic intervalMs without risk of int64 overflow against Unix-ms
+// timestamps (max ~year 292 million).
+const neverEmitted = -(1 << 62)
+
 func init() {
 	Register("sampler", func(id string) pipeline.Block {
-		return &samplerBlock{id: id, mode: "every-n-samples", n: 10, intervalMs: 100}
+		return &samplerBlock{id: id, mode: "every-n-samples", n: 10, intervalMs: 100, lastEmit: neverEmitted}
 	})
 }
 
