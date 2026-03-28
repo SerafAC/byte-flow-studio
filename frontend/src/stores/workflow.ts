@@ -56,67 +56,67 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   async function addBlock(blockType: string, x: number, y: number) {
     const def = await wails.addBlock(blockType, x, y)
+    const wf = await wails.getWorkflow()
+    blocks.value = wf.blocks ?? []
+    connections.value = wf.connections ?? []
     _pushHistory()
-    blocks.value = await (async () => {
-      const wf = await wails.getWorkflow()
-      connections.value = wf.connections ?? []
-      return wf.blocks ?? []
-    })()
     return def
   }
 
   async function removeBlock(blockId: string) {
     await wails.removeBlock(blockId)
-    _pushHistory()
     const wf = await wails.getWorkflow()
     blocks.value = wf.blocks ?? []
     connections.value = wf.connections ?? []
+    _pushHistory()
   }
 
   async function addConnection(fromBlockId: string, fromPortId: string, toBlockId: string, toPortId: string) {
     const conn = await wails.addConnection(fromBlockId, fromPortId, toBlockId, toPortId)
-    _pushHistory()
     connections.value = [...connections.value, conn]
+    _pushHistory()
     return conn
   }
 
   async function removeConnection(connectionId: string) {
     await wails.removeConnection(connectionId)
-    _pushHistory()
     connections.value = connections.value.filter(c => c.id !== connectionId)
+    _pushHistory()
   }
 
   async function updateBlockParams(blockId: string, params: Record<string, unknown>) {
-    _pushHistory()
     await wails.updateBlockParams(blockId, params)
     const idx = blocks.value.findIndex(b => b.id === blockId)
     if (idx >= 0) {
       blocks.value[idx] = { ...blocks.value[idx], params: { ...blocks.value[idx].params, ...params } }
     }
+    _pushHistory()
   }
 
   async function updateBlockPosition(blockId: string, x: number, y: number) {
-    _pushHistory()
     await wails.updateBlockPosition(blockId, x, y)
     const idx = blocks.value.findIndex(b => b.id === blockId)
     if (idx >= 0) {
       blocks.value[idx] = { ...blocks.value[idx], positionX: x, positionY: y }
     }
+    _pushHistory()
   }
 
-  function undo() {
+  async function undo() {
     if (historyIndex.value > 0) {
       historyIndex.value--
       const snap = history.value[historyIndex.value]
+      await wails.restoreBlocks(snap.blocks, snap.connections)
       blocks.value = snap.blocks
       connections.value = snap.connections
     }
   }
 
-  function redo() {
+  async function redo() {
     if (historyIndex.value < history.value.length - 1) {
       historyIndex.value++
       const snap = history.value[historyIndex.value]
+      await wails.restoreBlocks(snap.blocks, snap.connections)
       blocks.value = snap.blocks
       connections.value = snap.connections
     }

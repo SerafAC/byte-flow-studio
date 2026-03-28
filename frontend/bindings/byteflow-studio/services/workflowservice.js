@@ -119,6 +119,16 @@ export function RemoveBlock(blockID) {
 }
 
 /**
+ * RestoreBlocks replaces the in-memory blocks and connections (used for undo/redo sync).
+ * @param {workflow$0.BlockDef[] | null} blocks
+ * @param {workflow$0.ConnectionDef[] | null} connections
+ * @returns {$CancellablePromise<void>}
+ */
+export function RestoreBlocks(blocks, connections) {
+    return $Call.ByID(1891505709, blocks, connections);
+}
+
+/**
  * RemoveConnection removes a connection by ID.
  * @param {string} connectionID
  * @returns {$CancellablePromise<void>}

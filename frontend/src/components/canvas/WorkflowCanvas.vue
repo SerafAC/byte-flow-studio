@@ -91,10 +91,10 @@ async function onKeyDown(event: KeyboardEvent) {
     }
   }
   if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-    workflowStore.undo()
+    await workflowStore.undo()
   }
   if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.shiftKey && event.key === 'z'))) {
-    workflowStore.redo()
+    await workflowStore.redo()
   }
 }
 

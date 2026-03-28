@@ -189,6 +189,11 @@ export async function updateBlockPosition(blockId: string, x: number, y: number)
   return cast<void>(svc.UpdateBlockPosition(blockId, x, y))
 }
 
+export async function restoreBlocks(blocks: BlockDef[], connections: ConnectionDef[]): Promise<void> {
+  const svc = await workflowSvc()
+  return cast<void>(svc.RestoreBlocks(blocks, connections))
+}
+
 export async function getAvailableBlockTypes(): Promise<BlockTypeDescriptor[]> {
   const svc = await workflowSvc()
   return cast<BlockTypeDescriptor[]>(svc.GetAvailableBlockTypes())
