@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"byteflow-studio/internal/pipeline"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func init() {
@@ -24,7 +22,6 @@ type lineChartBlock struct {
 	id  string
 	cfg pipeline.BufferConfig
 	buf []pipeline.DataChunk
-	app *application.App
 }
 
 func (l *lineChartBlock) ID() string                       { return l.id }
@@ -118,18 +115,6 @@ func (l *lineChartBlock) Run(
 				return nil
 			}
 			l.addToBuffer(chunk)
-
-			if l.app != nil {
-				l.app.Event.Emit("pipeline:data", map[string]any{
-					"blockId": l.id,
-					"points": []map[string]any{
-						{
-							"timestamp": chunk.Timestamp,
-							"values":    chunk.Values,
-						},
-					},
-				})
-			}
 		}
 	}
 }

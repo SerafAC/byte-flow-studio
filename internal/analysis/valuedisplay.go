@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"byteflow-studio/internal/pipeline"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func init() {
@@ -28,7 +26,6 @@ type valueDisplayBlock struct {
 	cfg      pipeline.BufferConfig
 	buf      []pipeline.DataChunk
 	decimals int
-	app      *application.App
 }
 
 func (v *valueDisplayBlock) ID() string                    { return v.id }
@@ -175,24 +172,6 @@ func (v *valueDisplayBlock) Run(
 				return nil
 			}
 			v.addToBuffer(chunk)
-
-			if v.app != nil {
-				mode := "numeric"
-				if len(chunk.Raw) > 0 {
-					mode = "raw"
-				}
-				v.app.Event.Emit("pipeline:data", map[string]any{
-					"blockId": v.id,
-					"points": []map[string]any{
-						{
-							"timestamp": chunk.Timestamp,
-							"values":    chunk.Values,
-							"raw":       chunk.Raw,
-							"mode":      mode,
-						},
-					},
-				})
-			}
 		}
 	}
 }

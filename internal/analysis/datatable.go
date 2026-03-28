@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"byteflow-studio/internal/pipeline"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func init() {
@@ -24,7 +22,6 @@ type dataTableBlock struct {
 	id  string
 	cfg pipeline.BufferConfig
 	buf []pipeline.DataChunk
-	app *application.App
 }
 
 func (d *dataTableBlock) ID() string                       { return d.id }
@@ -118,18 +115,6 @@ func (d *dataTableBlock) Run(
 				return nil
 			}
 			d.addToBuffer(chunk)
-
-			if d.app != nil {
-				d.app.Event.Emit("pipeline:data", map[string]any{
-					"blockId": d.id,
-					"points": []map[string]any{
-						{
-							"timestamp": chunk.Timestamp,
-							"values":    chunk.Values,
-						},
-					},
-				})
-			}
 		}
 	}
 }

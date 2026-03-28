@@ -301,14 +301,21 @@ func (e *Engine) Start(
 								return
 							}
 							// Emit live data event to frontend
+							pt := map[string]any{
+								"timestamp": chunk.Timestamp,
+								"values":    chunk.Values,
+							}
+							if len(chunk.Raw) > 0 {
+								rawInts := make([]int, len(chunk.Raw))
+								for i, b := range chunk.Raw {
+									rawInts[i] = int(b)
+								}
+								pt["raw"] = rawInts
+								pt["mode"] = "raw"
+							}
 							e.emitEvent("pipeline:data", map[string]any{
 								"blockId": bID,
-								"points": []map[string]any{
-									{
-										"timestamp": chunk.Timestamp,
-										"values":    chunk.Values,
-									},
-								},
+								"points":  []map[string]any{pt},
 							})
 							// Record to session store if enabled
 							if recorder != nil {

@@ -464,6 +464,157 @@ func TestEngineBackpressureFrameDrop(t *testing.T) {
 	require.NoError(t, engine.Stop())
 }
 
+// stubRawInputBlock emits DataChunks with Raw bytes (no Values).
+type stubRawInputBlock struct {
+	id     string
+	chunks []DataChunk
+}
+
+func (s *stubRawInputBlock) ID() string                                { return s.id }
+func (s *stubRawInputBlock) Type() string                              { return "stub-raw-input" }
+func (s *stubRawInputBlock) Category() BlockCategory                   { return CategoryInput }
+func (s *stubRawInputBlock) Configure(map[string]any) error            { return nil }
+func (s *stubRawInputBlock) InputPorts() []Port                        { return nil }
+func (s *stubRawInputBlock) OutputPorts() []Port {
+	return []Port{{ID: "out", Direction: PortDirOutput, DataType: DataTypeRaw}}
+}
+func (s *stubRawInputBlock) Run(ctx context.Context, _ map[string]<-chan DataChunk, outputs map[string]chan<- DataChunk, _ chan<- BlockError) error {
+	out := outputs["out"]
+	for _, chunk := range s.chunks {
+		select {
+		case out <- chunk:
+		case <-ctx.Done():
+			return nil
+		}
+	}
+	<-ctx.Done()
+	return nil
+}
+
+// stubRawAnalysisBlock receives raw chunks.
+type stubRawAnalysisBlock struct {
+	id       string
+	mu       sync.Mutex
+	received []DataChunk
+}
+
+func (s *stubRawAnalysisBlock) count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.received)
+}
+
+func (s *stubRawAnalysisBlock) ID() string                                { return s.id }
+func (s *stubRawAnalysisBlock) Type() string                              { return "stub-raw-analysis" }
+func (s *stubRawAnalysisBlock) Category() BlockCategory                   { return CategoryAnalysis }
+func (s *stubRawAnalysisBlock) Configure(map[string]any) error            { return nil }
+func (s *stubRawAnalysisBlock) OutputPorts() []Port                       { return nil }
+func (s *stubRawAnalysisBlock) InputPorts() []Port {
+	return []Port{{ID: "in", Direction: PortDirInput, DataType: DataTypeRaw}}
+}
+func (s *stubRawAnalysisBlock) Run(ctx context.Context, inputs map[string]<-chan DataChunk, _ map[string]chan<- DataChunk, _ chan<- BlockError) error {
+	in := inputs["in"]
+	for {
+		select {
+		case chunk, ok := <-in:
+			if !ok {
+				return nil
+			}
+			s.mu.Lock()
+			s.received = append(s.received, chunk)
+			s.mu.Unlock()
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+// TestEngineAnalysisInterceptRawData verifies that the engine intercept emits
+// pipeline:data events with raw and mode fields for raw byte data.
+func TestEngineAnalysisInterceptRawData(t *testing.T) {
+	engine := NewEngine()
+	emitter := &mockEmitter{}
+	engine.SetEmitter(emitter)
+
+	chunks := []DataChunk{
+		{Timestamp: 1, SourceID: "in1", Raw: []byte{0x0A, 0xFF, 0x10}},
+		{Timestamp: 2, SourceID: "in1", Raw: []byte{0xDE, 0xAD}},
+	}
+	inBlock := &stubRawInputBlock{id: "in1", chunks: chunks}
+	anBlock := &stubRawAnalysisBlock{id: "an1"}
+
+	wf := makeTestWorkflow(
+		[]workflow.BlockDef{
+			{ID: "in1", Type: "stub-raw-input", Category: "input"},
+			{ID: "an1", Type: "stub-raw-analysis", Category: "analysis"},
+		},
+		[]workflow.ConnectionDef{
+			{ID: "c1", FromBlockID: "in1", FromPortID: "out", ToBlockID: "an1", ToPortID: "in"},
+		},
+	)
+	portTypes := map[string]map[string]DataType{
+		"in1": {"out": DataTypeRaw},
+		"an1": {"in": DataTypeRaw},
+	}
+	blocks := map[string]Block{"in1": inBlock, "an1": anBlock}
+
+	err := engine.Start(wf, "sess-raw", portTypes, blocks, &noopRecorder{})
+	require.NoError(t, err)
+
+	// Wait for chunks to arrive at the analysis block
+	deadline := time.After(500 * time.Millisecond)
+	for {
+		if anBlock.count() >= 2 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("only received %d chunks before timeout", anBlock.count())
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+
+	require.NoError(t, engine.Stop())
+
+	// Verify emitted pipeline:data events contain raw and mode fields
+	emitter.mu.Lock()
+	defer emitter.mu.Unlock()
+
+	var rawEvents []map[string]any
+	for _, ev := range emitter.events {
+		if ev.name != "pipeline:data" {
+			continue
+		}
+		m, ok := ev.data.(map[string]any)
+		if !ok {
+			continue
+		}
+		if m["blockId"] != "an1" {
+			continue
+		}
+		points, ok := m["points"].([]map[string]any)
+		if !ok || len(points) == 0 {
+			continue
+		}
+		pt := points[0]
+		if pt["mode"] == "raw" {
+			rawEvents = append(rawEvents, pt)
+		}
+	}
+
+	require.Len(t, rawEvents, 2, "expected 2 raw pipeline:data events")
+
+	// First chunk: [0x0A, 0xFF, 0x10] → []int{10, 255, 16}
+	raw0, ok := rawEvents[0]["raw"].([]int)
+	require.True(t, ok, "raw field should be []int")
+	assert.Equal(t, []int{10, 255, 16}, raw0)
+
+	// Second chunk: [0xDE, 0xAD] → []int{222, 173}
+	raw1, ok := rawEvents[1]["raw"].([]int)
+	require.True(t, ok, "raw field should be []int")
+	assert.Equal(t, []int{222, 173}, raw1)
+}
+
 // TestEngineMultiplePauseResumeCycles verifies that multiple Pause→Resume cycles do not panic
 // with "close of closed channel" (regression test for the resumeCh double-close bug).
 func TestEngineMultiplePauseResumeCycles(t *testing.T) {
