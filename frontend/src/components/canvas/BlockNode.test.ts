@@ -139,6 +139,21 @@ describe('BlockNode', () => {
     expect(w.find('.analysis-hint').exists()).toBe(false)
   })
 
+  it('hides input handles for input-category blocks but keeps output handle', () => {
+    const w = mountNode(makeBlock({ category: 'input', type: 'simulator' }))
+    expect(w.find('.out-port-wrapper').exists()).toBe(true)
+  })
+
+  it('hides output handle for analysis-category blocks', () => {
+    const w = mountNode(makeBlock({ category: 'analysis', type: 'line-chart' }))
+    expect(w.find('.out-port-wrapper').exists()).toBe(false)
+  })
+
+  it('shows output handle for processing-category blocks', () => {
+    const w = mountNode(makeBlock({ category: 'processing', type: 'moving-average' }))
+    expect(w.find('.out-port-wrapper').exists()).toBe(true)
+  })
+
   // ── Config button ─────────────────────────────────────────────────────────────
 
   it('shows config button for blocks with a config component', () => {

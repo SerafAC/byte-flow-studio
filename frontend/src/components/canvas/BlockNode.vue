@@ -44,11 +44,6 @@ const configComponentMap: Record<string, Component> = {
 const configComponent = computed(() => configComponentMap[props.data.type] ?? null)
 const isSelected = computed(() => !!(node?.selected))
 
-function onQuickAdd(event: MouseEvent) {
-  event.stopPropagation()
-  quickAddMenu.value?.open(event)
-}
-
 // Double-click: analysis → fullscreen view; input/processing → open config
 function onDblClick(event: MouseEvent) {
   if (props.data.category === 'analysis') {
@@ -87,6 +82,20 @@ const statusColor = computed(() => {
 const nodeColor = computed(() =>
   props.data.status === 'error' ? '#f97316' : (categoryColor[props.data.category] ?? '#6b7280')
 )
+
+let portDragStart = { x: 0, y: 0 }
+
+function onOutputPortMouseDown(event: MouseEvent) {
+  portDragStart = { x: event.clientX, y: event.clientY }
+}
+
+function onOutputPortMouseUp(event: MouseEvent) {
+  const dx = Math.abs(event.clientX - portDragStart.x)
+  const dy = Math.abs(event.clientY - portDragStart.y)
+  if (dx < 5 && dy < 5) {
+    quickAddMenu.value?.open(event)
+  }
+}
 </script>
 
 <template>
@@ -125,29 +134,28 @@ const nodeColor = computed(() =>
     <!-- Double-click hint for analysis blocks -->
     <div v-if="data.category === 'analysis'" class="analysis-hint">double-click to view</div>
 
-    <!-- Input handles (left side) -->
-    <Handle
-      v-for="port in ['in', 'in-numeric', 'in-raw']"
-      :key="'in-' + port"
-      :id="port"
-      type="target"
-      :position="Position.Left"
-    />
-
-    <!-- Output handles (right side) with quick-add button -->
-    <div v-for="port in ['out']" :key="'out-' + port" class="out-port-wrapper">
+    <!-- Input handles (left side) — hidden for input-category blocks -->
+    <template v-if="data.category !== 'input'">
       <Handle
+        v-for="port in ['in', 'in-numeric', 'in-raw']"
+        :key="'in-' + port"
         :id="port"
+        type="target"
+        :position="Position.Left"
+        class="input-handle"
+      />
+    </template>
+
+    <!-- Output handle (right side) — hidden for analysis-category blocks; merged with quick-add -->
+    <div v-if="data.category !== 'analysis'" class="out-port-wrapper">
+      <Handle
+        id="out"
         type="source"
         :position="Position.Right"
-      />
-      <!-- BUG4: visibility controlled via CSS :hover on .block-node parent -->
-      <button
-        class="quick-add-btn"
-        title="Quick add block"
-        @mousedown.stop
-        @click="onQuickAdd($event)"
-      >+</button>
+        class="output-handle"
+        @mousedown="onOutputPortMouseDown($event)"
+        @mouseup="onOutputPortMouseUp($event)"
+      >+</Handle>
     </div>
 
     <QuickAddMenu
@@ -287,26 +295,35 @@ const nodeColor = computed(() =>
   align-items: center;
 }
 
-/* BUG4: quick-add button — hidden by default, CSS :hover on parent keeps it visible when hovered */
-.quick-add-btn {
-  position: absolute;
-  right: -36px;
-  background: #3b82f6;
-  color: white;
-  border: none;
+/* Output handle: styled as a large clickable "+" button.
+   Click → open QuickAddMenu; drag → Vue Flow connection drag. */
+:deep(.output-handle.vue-flow__handle) {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
+  background: #3b82f6;
+  border: none;
+  right: -12px;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   z-index: 10;
   padding: 0;
-  visibility: hidden;
 }
-.block-node:hover .quick-add-btn { visibility: visible; }
-.quick-add-btn:hover { background: #2563eb; }
+:deep(.output-handle.vue-flow__handle:hover) { background: #2563eb; }
+
+/* Input handles: larger target area for easier clicking */
+:deep(.input-handle.vue-flow__handle) {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6b7280;
+  border: none;
+  left: -7px;
+}
+:deep(.input-handle.vue-flow__handle:hover) { background: #9ca3af; }
 </style>
