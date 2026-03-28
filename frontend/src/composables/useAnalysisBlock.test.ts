@@ -19,9 +19,12 @@ vi.mock('@wailsio/runtime', () => ({
     On: (event: string, cb: (...args: unknown[]) => void) => {
       if (!mocks.eventListeners[event]) mocks.eventListeners[event] = []
       mocks.eventListeners[event].push(cb)
+      return () => {
+        mocks.eventListeners[event] = (mocks.eventListeners[event] ?? []).filter(f => f !== cb)
+      }
     },
-    Off: (event: string, cb: (...args: unknown[]) => void) => {
-      mocks.eventListeners[event] = (mocks.eventListeners[event] ?? []).filter(f => f !== cb)
+    Off: (...eventNames: string[]) => {
+      eventNames.forEach(name => { delete mocks.eventListeners[name] })
     },
   },
 }))

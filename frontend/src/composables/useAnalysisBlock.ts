@@ -44,15 +44,18 @@ export function useAnalysisBlock(opts: AnalysisBlockOptions) {
     }
   }
 
+  let offData: (() => void) | null = null
+  let offView: (() => void) | null = null
+
   onMounted(() => {
-    Events.On('pipeline:data', opts.onData)
-    Events.On('session:view-changed', onViewChanged)
+    offData = Events.On('pipeline:data', opts.onData)
+    offView = Events.On('session:view-changed', onViewChanged)
     document.addEventListener('keydown', onEscapeKey)
   })
 
   onUnmounted(() => {
-    Events.Off('pipeline:data', opts.onData)
-    Events.Off('session:view-changed', onViewChanged)
+    offData?.()
+    offView?.()
     document.removeEventListener('keydown', onEscapeKey)
   })
 

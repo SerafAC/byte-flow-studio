@@ -16,12 +16,15 @@ export const usePipelineStore = defineStore('pipeline', () => {
     sessionId.value = event.data.sessionId ?? null
   }
 
+  let offStateChanged: (() => void) | null = null
+
   function subscribe() {
-    Events.On('pipeline:state-changed', onStateChanged)
+    offStateChanged = Events.On('pipeline:state-changed', onStateChanged)
   }
 
   function unsubscribe() {
-    Events.Off('pipeline:state-changed', onStateChanged)
+    offStateChanged?.()
+    offStateChanged = null
   }
 
   async function startFlow() {

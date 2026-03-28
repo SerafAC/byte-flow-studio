@@ -20,14 +20,19 @@ export const useSessionStore = defineStore('session', () => {
     sessions.value = event.data.sessions ?? []
   }
 
+  let offViewChanged: (() => void) | null = null
+  let offListUpdated: (() => void) | null = null
+
   function subscribe() {
-    Events.On('session:view-changed', onViewChanged)
-    Events.On('session:list-updated', onListUpdated)
+    offViewChanged = Events.On('session:view-changed', onViewChanged)
+    offListUpdated = Events.On('session:list-updated', onListUpdated)
   }
 
   function unsubscribe() {
-    Events.Off('session:view-changed', onViewChanged)
-    Events.Off('session:list-updated', onListUpdated)
+    offViewChanged?.()
+    offListUpdated?.()
+    offViewChanged = null
+    offListUpdated = null
   }
 
   async function loadSessions() {
