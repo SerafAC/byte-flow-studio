@@ -94,7 +94,9 @@ func (w *wsBlock) Run(
 		conn, _, err := dialer.DialContext(ctx, url, headers)
 		if err != nil {
 			failedReconnects++
+			pkgLog.Warn("websocket connection failed", "block_id", w.id, "url", url, "attempt", failedReconnects, "error", err)
 			if failedReconnects >= maxFailedReconnects {
+				pkgLog.Error("websocket max reconnect attempts reached", "block_id", w.id, "url", url, "max_attempts", maxFailedReconnects)
 				select {
 				case errCh <- pipeline.BlockError{BlockID: w.id, Err: err}:
 				default:
@@ -109,12 +111,16 @@ func (w *wsBlock) Run(
 			continue
 		}
 
+		pkgLog.Info("websocket connected", "block_id", w.id, "url", url)
 		failedReconnects = 0
 		err = w.readLoop(ctx, conn, out)
 		conn.Close()
 
 		if err != nil && ctx.Err() != nil {
 			return nil
+		}
+		if err != nil {
+			pkgLog.Warn("websocket disconnected", "block_id", w.id, "url", url, "error", err)
 		}
 
 		// Disconnected — retry after interval

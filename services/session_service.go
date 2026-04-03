@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 
+	"byteflow-studio/internal/logging"
 	"byteflow-studio/internal/pipeline"
 	"byteflow-studio/internal/session"
 	"byteflow-studio/internal/workflow"
@@ -23,11 +24,12 @@ type StorageEstimate struct {
 
 // SessionService manages session lifecycle from the frontend's perspective.
 type SessionService struct {
-	sessionMgr  *session.Manager
+	sessionMgr   *session.Manager
 	sessionStore *session.Store
-	wfService   *WorkflowService
-	pipelineSvc *PipelineService
-	app         *application.App
+	wfService    *WorkflowService
+	pipelineSvc  *PipelineService
+	app          *application.App
+	log          *logging.Logger
 }
 
 // NewSessionService creates a SessionService.
@@ -35,11 +37,13 @@ func NewSessionService(
 	sessionMgr *session.Manager,
 	sessionStore *session.Store,
 	wfService *WorkflowService,
+	log *logging.Logger,
 ) *SessionService {
 	return &SessionService{
 		sessionMgr:   sessionMgr,
 		sessionStore: sessionStore,
 		wfService:    wfService,
+		log:          log,
 	}
 }
 
@@ -57,9 +61,15 @@ func (s *SessionService) SetPipelineService(ps *PipelineService) {
 func (s *SessionService) ListSessions() ([]session.SessionMeta, error) {
 	wf, err := s.wfService.GetWorkflow()
 	if err != nil {
+		s.log.Error("failed to get workflow for session list", logging.KeyError, err)
 		return nil, err
 	}
-	return s.sessionStore.ListSessions(wf.ID)
+	sessions, err := s.sessionStore.ListSessions(wf.ID)
+	if err != nil {
+		s.log.Error("failed to list sessions", logging.KeyError, err, "workflow_id", wf.ID)
+		return nil, err
+	}
+	return sessions, nil
 }
 
 // GetActiveSessionID returns the ID of the currently active session.
@@ -76,12 +86,16 @@ func (s *SessionService) SetViewSession(sessionID string) error {
 		}
 	}
 
+	s.log.Debug("switching to historical session view", logging.KeySessionID, sessionID)
+
 	wf, err := s.wfService.GetWorkflow()
 	if err != nil {
+		s.log.Error("failed to get workflow for session view switch", logging.KeyError, err)
 		return err
 	}
 	sessions, err := s.sessionStore.ListSessions(wf.ID)
 	if err != nil {
+		s.log.Error("failed to list sessions for view switch", logging.KeyError, err, "workflow_id", wf.ID)
 		return err
 	}
 	found := false
@@ -92,6 +106,7 @@ func (s *SessionService) SetViewSession(sessionID string) error {
 		}
 	}
 	if !found {
+		s.log.Error("session not found for view switch", logging.KeySessionID, sessionID)
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
@@ -106,9 +121,11 @@ func (s *SessionService) SetViewSession(sessionID string) error {
 	// Replay processed data as pipeline:data events
 	dataByBlock, err := s.sessionStore.GetAllProcessedDataByBlock(sessionID)
 	if err != nil {
+		s.log.Error("failed to get processed data for replay", logging.KeyError, err, logging.KeySessionID, sessionID)
 		return err
 	}
 	if s.app != nil {
+		totalPoints := 0
 		for blockID, records := range dataByBlock {
 			points := make([]map[string]any, 0, len(records))
 			for _, rec := range records {
@@ -118,11 +135,13 @@ func (s *SessionService) SetViewSession(sessionID string) error {
 					"replay":    true,
 				})
 			}
+			totalPoints += len(points)
 			s.app.Event.Emit("pipeline:data", map[string]any{
 				"blockId": blockID,
 				"points":  points,
 			})
 		}
+		s.log.Debug("session replay complete", logging.KeySessionID, sessionID, "blocks", len(dataByBlock), "points", totalPoints)
 	}
 	return nil
 }
@@ -166,12 +185,15 @@ func (s *SessionService) DeleteSession(sessionID string) error {
 	if s.sessionMgr.ActiveSessionID() == sessionID {
 		return fmt.Errorf("cannot delete the currently active session")
 	}
+	s.log.Debug("deleting session", logging.KeySessionID, sessionID)
 	wf, err := s.wfService.GetWorkflow()
 	if err != nil {
+		s.log.Error("failed to get workflow for session delete", logging.KeyError, err)
 		return err
 	}
 	sessions, err := s.sessionStore.ListSessions(wf.ID)
 	if err != nil {
+		s.log.Error("failed to list sessions for delete", logging.KeyError, err, "workflow_id", wf.ID)
 		return err
 	}
 	found := false
@@ -182,12 +204,15 @@ func (s *SessionService) DeleteSession(sessionID string) error {
 		}
 	}
 	if !found {
+		s.log.Error("session not found for delete", logging.KeySessionID, sessionID)
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
 	if err := s.sessionStore.DeleteSession(sessionID); err != nil {
+		s.log.Error("failed to delete session", logging.KeyError, err, logging.KeySessionID, sessionID)
 		return err
 	}
+	s.log.Info("session deleted", logging.KeySessionID, sessionID)
 	if s.app != nil {
 		sessions, _ = s.sessionStore.ListSessions(wf.ID)
 		s.app.Event.Emit("session:list-updated", map[string]any{"sessions": sessions})

@@ -99,6 +99,7 @@ func (b *uartBlock) Run(
 	} else {
 		if b.port == "" {
 			err := fmt.Errorf("uart port not configured")
+			pkgLog.Error("uart port not configured", "block_id", b.id)
 			select {
 			case errCh <- pipeline.BlockError{BlockID: b.id, Err: err}:
 			default:
@@ -111,14 +112,17 @@ func (b *uartBlock) Run(
 			StopBits: b.stopBits,
 			Parity:   b.parity,
 		}
+		pkgLog.Debug("opening serial port", "block_id", b.id, "port", b.port, "baud_rate", b.baudRate)
 		port, err := serial.Open(b.port, mode)
 		if err != nil {
+			pkgLog.Error("failed to open serial port", "block_id", b.id, "port", b.port, "error", err)
 			select {
 			case errCh <- pipeline.BlockError{BlockID: b.id, Err: err}:
 			default:
 			}
 			return err
 		}
+		pkgLog.Info("serial port opened", "block_id", b.id, "port", b.port, "baud_rate", b.baudRate)
 		reader = port
 		defer reader.Close()
 	}
@@ -153,6 +157,7 @@ func (b *uartBlock) Run(
 					return nil
 				}
 				// EOF signals hardware disconnect — report as BlockError
+				pkgLog.Error("serial read error", "block_id", b.id, "port", b.port, "error", res.err)
 				select {
 				case errCh <- pipeline.BlockError{BlockID: b.id, Err: res.err}:
 				default:

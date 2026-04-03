@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 
+	"byteflow-studio/internal/logging"
 	"byteflow-studio/internal/pipeline"
 	"byteflow-studio/internal/processing"
 	"byteflow-studio/internal/session"
@@ -18,14 +19,16 @@ type PipelineService struct {
 	wfService  *WorkflowService
 	sessionSvc *SessionService
 	app        *application.App
+	log        *logging.Logger
 }
 
 // NewPipelineService creates a PipelineService.
-func NewPipelineService(engine *pipeline.Engine, sessionMgr *session.Manager, wfService *WorkflowService) *PipelineService {
+func NewPipelineService(engine *pipeline.Engine, sessionMgr *session.Manager, wfService *WorkflowService, log *logging.Logger) *PipelineService {
 	return &PipelineService{
 		engine:     engine,
 		sessionMgr: sessionMgr,
 		wfService:  wfService,
+		log:        log,
 	}
 }
 
@@ -49,11 +52,15 @@ func (s *PipelineService) GetState() pipeline.FlowState {
 func (s *PipelineService) Start() error {
 	wf, err := s.wfService.GetWorkflow()
 	if err != nil {
+		s.log.Error("failed to get workflow for pipeline start", logging.KeyError, err)
 		return err
 	}
 
+	s.log.Debug("starting pipeline", "workflow_id", wf.ID, "blocks", len(wf.Blocks), "connections", len(wf.Connections))
+
 	// Validate processing blocks are on a valid Input→Analysis path
 	if err := s.validateConnectivity(wf); err != nil {
+		s.log.Error("pipeline connectivity validation failed", logging.KeyError, err, "workflow_id", wf.ID)
 		return err
 	}
 
@@ -63,11 +70,13 @@ func (s *PipelineService) Start() error {
 	// Pre-validate and pre-construct blocks
 	blocks, err := s.buildBlocks(wf)
 	if err != nil {
+		s.log.Error("failed to build blocks", logging.KeyError, err, "workflow_id", wf.ID)
 		return err
 	}
 
 	sess, err := s.sessionMgr.CreateSession(wf.ID, sessionConfigFrom(wf.SessionConfig))
 	if err != nil {
+		s.log.Error("failed to create session for pipeline", logging.KeyError, err, "workflow_id", wf.ID)
 		return fmt.Errorf("create session: %w", err)
 	}
 
@@ -79,7 +88,11 @@ func (s *PipelineService) Start() error {
 		})
 	}
 
-	return s.engine.Start(wf, sess.ID, portTypes, blocks, s.sessionMgr)
+	if err := s.engine.Start(wf, sess.ID, portTypes, blocks, s.sessionMgr); err != nil {
+		s.log.Error("engine start failed", logging.KeyError, err, logging.KeySessionID, sess.ID)
+		return err
+	}
+	return nil
 }
 
 // Pause suspends data flow.
@@ -95,16 +108,21 @@ func (s *PipelineService) Resume() error {
 // Stop stops the pipeline and completes the active session.
 func (s *PipelineService) Stop() error {
 	sessionID := s.sessionMgr.ActiveSessionID()
+	s.log.Debug("stopping pipeline", logging.KeySessionID, sessionID)
 	if err := s.engine.Stop(); err != nil {
+		s.log.Error("engine stop failed", logging.KeyError, err, logging.KeySessionID, sessionID)
 		return err
 	}
 	if sessionID != "" {
-		_ = s.sessionMgr.CompleteSession(sessionID, "user-stop")
+		if err := s.sessionMgr.CompleteSession(sessionID, "user-stop"); err != nil {
+			s.log.Error("failed to complete session on stop", logging.KeyError, err, logging.KeySessionID, sessionID)
+		}
 	}
 	// T086: emit storage warning if threshold exceeded
 	if s.sessionSvc != nil && s.app != nil {
 		est := s.sessionSvc.GetStorageEstimate()
 		if est.ExceedsThreshold {
+			s.log.Warn("storage threshold exceeded", "projected_bytes", est.ProjectedMaxBytes, "threshold_bytes", est.WarningThresholdBytes)
 			s.app.Event.Emit("session:storage-warning", est)
 		}
 	}
@@ -122,10 +140,12 @@ func (s *PipelineService) buildBlocks(wf workflow.Workflow) (map[string]pipeline
 	for _, b := range wf.Blocks {
 		factory, ok := processing.Registry[b.Type]
 		if !ok {
+			s.log.Error("unknown block type in workflow", logging.KeyBlockID, b.ID, "type", b.Type)
 			return nil, fmt.Errorf("block %s (%s): unknown type", b.ID, b.Type)
 		}
 		block := factory(b.ID)
 		if err := block.Configure(b.Params); err != nil {
+			s.log.Error("block configuration failed", logging.KeyBlockID, b.ID, "type", b.Type, logging.KeyError, err)
 			return nil, fmt.Errorf("block %s (%s): invalid configuration: %s", b.ID, b.Type, err.Error())
 		}
 		blocks[b.ID] = block

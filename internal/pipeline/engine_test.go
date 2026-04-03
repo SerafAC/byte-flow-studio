@@ -156,7 +156,7 @@ func makeTestWorkflow(blocks []workflow.BlockDef, conns []workflow.ConnectionDef
 }
 
 func TestEngine2BlockRun(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 
 	chunks := []DataChunk{
 		{Timestamp: 1, SourceID: "in1", Values: []float64{1}},
@@ -207,7 +207,7 @@ func TestEngine2BlockRun(t *testing.T) {
 }
 
 func TestEngineFanOut(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 
 	const numChunks = 5
 	chunks := make([]DataChunk, numChunks)
@@ -263,7 +263,7 @@ func TestEngineFanOut(t *testing.T) {
 }
 
 func TestEngineFanIn(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 
 	const chunksPerInput = 3
 	makeChunks := func(sourceID string) []DataChunk {
@@ -321,7 +321,7 @@ func TestEngineFanIn(t *testing.T) {
 }
 
 func TestEngineContextCancel(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 
 	inBlock := &stubInputBlock{id: "in1", chunks: nil}
 	anBlock := &stubAnalysisBlock{id: "an1"}
@@ -419,7 +419,7 @@ func (f *fastInputBlock) Run(ctx context.Context, _ map[string]<-chan DataChunk,
 // the engine drops frames after 100 consecutive drops and emits a block-status event
 // with "frames dropped: 100" (T104a — test written before T104 implementation).
 func TestEngineBackpressureFrameDrop(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 	emitter := &mockEmitter{}
 	engine.SetEmitter(emitter)
 
@@ -532,7 +532,7 @@ func (s *stubRawAnalysisBlock) Run(ctx context.Context, inputs map[string]<-chan
 // TestEngineAnalysisInterceptRawData verifies that the engine intercept emits
 // pipeline:data events with raw and mode fields for raw byte data.
 func TestEngineAnalysisInterceptRawData(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 	emitter := &mockEmitter{}
 	engine.SetEmitter(emitter)
 
@@ -618,7 +618,7 @@ func TestEngineAnalysisInterceptRawData(t *testing.T) {
 // TestEngineMultiplePauseResumeCycles verifies that multiple Pause→Resume cycles do not panic
 // with "close of closed channel" (regression test for the resumeCh double-close bug).
 func TestEngineMultiplePauseResumeCycles(t *testing.T) {
-	engine := NewEngine()
+	engine := NewEngine(nil)
 
 	inBlock := &stubInputBlock{id: "in1", chunks: nil}
 	anBlock := &stubAnalysisBlock{id: "an1"}

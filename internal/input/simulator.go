@@ -66,6 +66,7 @@ func (s *simulatorBlock) Run(
 		return nil
 	}
 
+	pkgLog.Debug("simulator started", "block_id", s.id, "waveform", s.waveform, "frequency_hz", s.frequencyHz, "sample_rate_hz", s.sampleRateHz)
 	interval := time.Duration(float64(time.Second) / s.sampleRateHz)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()

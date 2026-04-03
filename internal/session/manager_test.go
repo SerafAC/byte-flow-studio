@@ -55,7 +55,7 @@ func TestSessionRetention(t *testing.T) {
 		StoreRaw:       true,
 		StoreProcessed: true,
 		MaxSessions:    maxSessions,
-	})
+	}, nil)
 
 	// Create and complete 11 sessions
 	for i := 0; i < maxSessions+1; i++ {

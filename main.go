@@ -12,7 +12,7 @@ import (
 
 	// Import block packages so their init() functions register with the processing registry.
 	_ "byteflow-studio/internal/analysis"
-	_ "byteflow-studio/internal/input"
+	"byteflow-studio/internal/input"
 	_ "byteflow-studio/internal/processing"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -25,6 +25,8 @@ func main() {
 	logger := logging.New()
 	logger.Info("starting ByteFlow Studio")
 
+	input.SetLogger(logger)
+
 	// Open a transient in-memory store for the default session.
 	// On load/save, a file-based store is used instead.
 	workflowStore, err := workflow.OpenStore(":memory:")
@@ -36,13 +38,13 @@ func main() {
 	sessionStore := session.NewStore(workflowStore.DB())
 
 	defaultCfg := session.SessionConfig{StoreRaw: true, StoreProcessed: true, MaxSessions: 10}
-	sessionMgr := session.NewManager(sessionStore, "default", defaultCfg)
+	sessionMgr := session.NewManager(sessionStore, "default", defaultCfg, logger)
 
-	engine := pipeline.NewEngine()
+	engine := pipeline.NewEngine(logger)
 
-	wfService := services.NewWorkflowService(workflowStore)
-	pipelineSvc := services.NewPipelineService(engine, sessionMgr, wfService)
-	sessionSvc := services.NewSessionService(sessionMgr, sessionStore, wfService)
+	wfService := services.NewWorkflowService(workflowStore, logger)
+	pipelineSvc := services.NewPipelineService(engine, sessionMgr, wfService, logger)
+	sessionSvc := services.NewSessionService(sessionMgr, sessionStore, wfService, logger)
 
 	wfService.SetEngine(pipelineSvc)
 	sessionSvc.SetPipelineService(pipelineSvc)

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"byteflow-studio/internal/logging"
 	"byteflow-studio/internal/pipeline"
 	"byteflow-studio/internal/processing"
 	"byteflow-studio/internal/workflow"
@@ -37,6 +38,7 @@ type WorkflowService struct {
 	store   *workflow.Store
 	current *workflow.Workflow
 	engine  PipelineStateGetter
+	log     *logging.Logger
 }
 
 // PipelineStateGetter is a minimal interface to check pipeline state.
@@ -45,7 +47,7 @@ type PipelineStateGetter interface {
 }
 
 // NewWorkflowService creates a WorkflowService.
-func NewWorkflowService(store *workflow.Store) *WorkflowService {
+func NewWorkflowService(store *workflow.Store, log *logging.Logger) *WorkflowService {
 	wf := &workflow.Workflow{
 		ID:            uuid.New().String(),
 		Name:          "Untitled Workflow",
@@ -55,7 +57,7 @@ func NewWorkflowService(store *workflow.Store) *WorkflowService {
 		Connections:   []workflow.ConnectionDef{},
 		SessionConfig: workflow.DefaultSessionConfig(),
 	}
-	return &WorkflowService{store: store, current: wf}
+	return &WorkflowService{store: store, current: wf, log: log}
 }
 
 // SetEngine sets the pipeline state getter (to enforce editing locks).
@@ -76,14 +78,18 @@ func (s *WorkflowService) SaveWorkflow(path string) error {
 	if !strings.HasSuffix(path, ".byteflow") {
 		return fmt.Errorf("path must end in .byteflow")
 	}
+	s.log.Debug("saving workflow", "path", path, "workflow_id", s.current.ID)
 	fileStore, err := workflow.OpenStore(path)
 	if err != nil {
+		s.log.Error("failed to open workflow file for save", logging.KeyError, err, "path", path)
 		return fmt.Errorf("failed to write workflow file: %w", err)
 	}
 	defer fileStore.Close()
 	if err := fileStore.SaveWorkflow(s.current); err != nil {
+		s.log.Error("failed to save workflow", logging.KeyError, err, "path", path)
 		return fmt.Errorf("failed to write workflow file: %w", err)
 	}
+	s.log.Info("workflow saved", "path", path, "workflow_id", s.current.ID)
 	return nil
 }
 
@@ -95,17 +101,21 @@ func (s *WorkflowService) LoadWorkflow(path string) (workflow.Workflow, error) {
 	if !fileExists(path) {
 		return workflow.Workflow{}, fmt.Errorf("file not found: %s", path)
 	}
+	s.log.Debug("loading workflow", "path", path)
 	fileStore, err := workflow.OpenStore(path)
 	if err != nil {
+		s.log.Error("failed to open workflow file for load", logging.KeyError, err, "path", path)
 		return workflow.Workflow{}, fmt.Errorf("not a valid byteflow file: %w", err)
 	}
 	defer fileStore.Close()
 
 	wf, err := fileStore.LoadAnyWorkflow()
 	if err != nil {
+		s.log.Error("failed to load workflow from file", logging.KeyError, err, "path", path)
 		return workflow.Workflow{}, fmt.Errorf("not a valid byteflow file: %w", err)
 	}
 	if wf == nil {
+		s.log.Error("no workflow found in file", "path", path)
 		return workflow.Workflow{}, fmt.Errorf("not a valid byteflow file: no workflow found")
 	}
 
@@ -119,6 +129,7 @@ func (s *WorkflowService) LoadWorkflow(path string) (workflow.Workflow, error) {
 		if b.Category == "input" && b.Type == "uart" {
 			port, _ := b.Params["port"].(string)
 			if port != "" && !portSet[port] {
+				s.log.Warn("hardware not available for UART block", logging.KeyBlockID, b.ID, "port", port)
 				wf.Blocks[i].Status = "error"
 				wf.Blocks[i].ErrorMessage = "hardware not available: " + port
 			}
@@ -126,6 +137,7 @@ func (s *WorkflowService) LoadWorkflow(path string) (workflow.Workflow, error) {
 	}
 
 	s.current = wf
+	s.log.Info("workflow loaded", "path", path, "workflow_id", wf.ID, "blocks", len(wf.Blocks))
 	return *wf, nil
 }
 
@@ -135,9 +147,11 @@ func (s *WorkflowService) RecoverWorkflow(path string) (workflow.Workflow, error
 	if !strings.HasSuffix(path, ".byteflow") {
 		return workflow.Workflow{}, fmt.Errorf("not a valid byteflow file: path must end in .byteflow")
 	}
+	s.log.Info("attempting workflow recovery", "path", path)
 	// Attempt to open; SQLite will re-initialise schema on a corrupted file
 	fileStore, err := workflow.OpenStore(path)
 	if err != nil {
+		s.log.Error("workflow recovery failed", logging.KeyError, err, "path", path)
 		return workflow.Workflow{}, fmt.Errorf("recovery failed: %w", err)
 	}
 	defer fileStore.Close()
@@ -145,6 +159,7 @@ func (s *WorkflowService) RecoverWorkflow(path string) (workflow.Workflow, error
 	// Try to load existing workflow; if none found, return empty
 	wf, _ := fileStore.LoadAnyWorkflow()
 	if wf == nil {
+		s.log.Warn("no workflow found during recovery, creating empty workflow", "path", path)
 		empty := workflow.Workflow{
 			ID:            fmt.Sprintf("recovered-%d", time.Now().UnixMilli()),
 			Name:          "Recovered Workflow",
@@ -158,6 +173,7 @@ func (s *WorkflowService) RecoverWorkflow(path string) (workflow.Workflow, error
 		return empty, nil
 	}
 	s.current = wf
+	s.log.Info("workflow recovered", "path", path, "workflow_id", wf.ID)
 	return *wf, nil
 }
 
@@ -168,6 +184,7 @@ func (s *WorkflowService) AddBlock(blockType string, x, y float64) (workflow.Blo
 	}
 	factory, ok := processing.Registry[blockType]
 	if !ok {
+		s.log.Error("unknown block type", "type", blockType)
 		return workflow.BlockDef{}, fmt.Errorf("unknown block type: %s", blockType)
 	}
 	block := factory(uuid.New().String())
@@ -182,6 +199,7 @@ func (s *WorkflowService) AddBlock(blockType string, x, y float64) (workflow.Blo
 	}
 	s.current.Blocks = append(s.current.Blocks, def)
 	s.current.UpdatedAt = time.Now().UnixMilli()
+	s.log.Debug("block added", logging.KeyBlockID, def.ID, "type", blockType)
 	return def, nil
 }
 
@@ -211,6 +229,7 @@ func (s *WorkflowService) RemoveBlock(blockID string) error {
 	}
 	s.current.Connections = filtered
 	s.current.UpdatedAt = time.Now().UnixMilli()
+	s.log.Debug("block removed", logging.KeyBlockID, blockID)
 	return nil
 }
 
@@ -265,6 +284,7 @@ func (s *WorkflowService) AddConnection(fromBlockID, fromPortID, toBlockID, toPo
 
 	s.current.Connections = append(s.current.Connections, newConn)
 	s.current.UpdatedAt = time.Now().UnixMilli()
+	s.log.Debug("connection added", "connection_id", newConn.ID, "from", fromBlockID+":"+fromPortID, "to", toBlockID+":"+toPortID)
 	return newConn, nil
 }
 
@@ -274,6 +294,7 @@ func (s *WorkflowService) RemoveConnection(connectionID string) error {
 		if c.ID == connectionID {
 			s.current.Connections = append(s.current.Connections[:i], s.current.Connections[i+1:]...)
 			s.current.UpdatedAt = time.Now().UnixMilli()
+			s.log.Debug("connection removed", "connection_id", connectionID)
 			return nil
 		}
 	}
@@ -324,8 +345,10 @@ func (s *WorkflowService) GetAvailableBlockTypes() []BlockTypeDescriptor {
 func (s *WorkflowService) ListSerialPorts() ([]SerialPortInfo, error) {
 	ports, err := enumerator.GetDetailedPortsList()
 	if err != nil {
+		s.log.Error("failed to enumerate serial ports", logging.KeyError, err)
 		return nil, err
 	}
+	s.log.Debug("serial ports enumerated", "count", len(ports))
 	result := make([]SerialPortInfo, 0, len(ports))
 	for _, p := range ports {
 		result = append(result, SerialPortInfo{
@@ -352,6 +375,7 @@ func (s *WorkflowService) RestoreBlocks(blocks []workflow.BlockDef, connections 
 	s.current.Blocks = blocks
 	s.current.Connections = connections
 	s.current.UpdatedAt = time.Now().UnixMilli()
+	s.log.Debug("blocks restored", "blocks", len(blocks), "connections", len(connections))
 	return nil
 }
 

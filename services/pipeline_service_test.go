@@ -18,16 +18,16 @@ func newTestPipelineService(t *testing.T, wf workflow.Workflow) *PipelineService
 	require.NoError(t, err)
 	t.Cleanup(func() { store.Close() })
 
-	wfSvc := NewWorkflowService(store)
+	wfSvc := NewWorkflowService(store, nil)
 	wfSvc.SetCurrentWorkflow(&wf)
 
 	sessionStore := session.NewStore(store.DB())
 	sessionMgr := session.NewManager(sessionStore, wf.ID, session.SessionConfig{
 		StoreRaw: false, StoreProcessed: false, MaxSessions: 5,
-	})
+	}, nil)
 
-	eng := pipeline.NewEngine()
-	return NewPipelineService(eng, sessionMgr, wfSvc)
+	eng := pipeline.NewEngine(nil)
+	return NewPipelineService(eng, sessionMgr, wfSvc, nil)
 }
 
 // TestPipelineServiceFR004NoInputNoAnalysis verifies that Start() returns

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"byteflow-studio/internal/logging"
 	"byteflow-studio/internal/session"
 	"byteflow-studio/internal/workflow"
 
@@ -43,6 +44,7 @@ type Engine struct {
 	app         *application.App
 	emitter     EventEmitter // injectable; overrides app-based emit when set
 	sessionID   string
+	log         *logging.Logger
 }
 
 // SetEmitter injects a custom event emitter (used by tests).
@@ -53,12 +55,13 @@ func (e *Engine) SetEmitter(em EventEmitter) {
 }
 
 // NewEngine creates a new Engine.
-func NewEngine() *Engine {
+func NewEngine(log *logging.Logger) *Engine {
 	return &Engine{
 		state:       FlowStateIdle,
 		blockErrors: map[string]string{},
 		pauseCh:     make(chan struct{}),
 		resumeCh:    make(chan struct{}),
+		log:         log,
 	}
 }
 
@@ -103,9 +106,12 @@ func (e *Engine) Start(
 		return fmt.Errorf("flow is already running")
 	}
 
+	e.log.Debug("validating pipeline graph", logging.KeySessionID, sessionID, "blocks", len(blocks), "connections", len(wf.Connections))
+
 	// Validate the DAG
 	order, err := ValidateGraph(wf.Blocks, wf.Connections, portTypes)
 	if err != nil {
+		e.log.Error("graph validation failed", logging.KeyError, err)
 		return err
 	}
 
@@ -237,6 +243,7 @@ func (e *Engine) Start(
 		if !ok {
 			continue
 		}
+		e.log.Debug("launching block", logging.KeyBlockID, blockID, "type", block.Type(), "category", string(block.Category()))
 		ins := inChans[blockID]
 		outs := outChans[blockID]
 		blockCopy := block
@@ -342,6 +349,7 @@ func (e *Engine) Start(
 		go func() {
 			defer e.wg.Done()
 			if err := blockCopy.Run(ctx, ins, outs, errCh); err != nil {
+				e.log.Error("block exited with error", logging.KeyBlockID, bIDCopy, logging.KeyError, err)
 				select {
 				case errCh <- BlockError{BlockID: bIDCopy, Err: err}:
 				default:
@@ -357,6 +365,7 @@ func (e *Engine) Start(
 			case <-ctx.Done():
 				return
 			case be := <-errCh:
+				e.log.Error("block error received", logging.KeyBlockID, be.BlockID, logging.KeyError, be.Err)
 				e.mu.Lock()
 				e.blockErrors[be.BlockID] = be.Err.Error()
 				e.state = FlowStateError
@@ -435,6 +444,7 @@ func (e *Engine) Start(
 	}
 
 	e.state = FlowStateRunning
+	e.log.Info("pipeline started", logging.KeySessionID, sessionID, "blocks", len(order))
 	e.emitStateChangedLocked()
 	return nil
 }
@@ -448,6 +458,7 @@ func (e *Engine) Pause() error {
 	}
 	e.paused = true
 	e.state = FlowStatePaused
+	e.log.Info("pipeline paused", logging.KeySessionID, e.sessionID)
 	close(e.pauseCh)
 	e.emitStateChangedLocked()
 	return nil
@@ -462,6 +473,7 @@ func (e *Engine) Resume() error {
 	}
 	e.paused = false
 	e.state = FlowStateRunning
+	e.log.Info("pipeline resumed", logging.KeySessionID, e.sessionID)
 	close(e.resumeCh)
 	e.pauseCh = make(chan struct{})
 	e.resumeCh = make(chan struct{})
@@ -477,6 +489,7 @@ func (e *Engine) Stop() error {
 		e.mu.Unlock()
 		return fmt.Errorf("flow is not active")
 	}
+	e.log.Debug("stopping pipeline", logging.KeySessionID, e.sessionID, logging.KeyFlowState, string(state))
 	cancel := e.cancel
 	if e.paused {
 		close(e.resumeCh)
@@ -492,6 +505,7 @@ func (e *Engine) Stop() error {
 	e.state = FlowStateIdle
 	e.blockErrors = map[string]string{}
 	e.sessionID = ""
+	e.log.Info("pipeline stopped")
 	e.emitStateChangedLocked()
 	e.mu.Unlock()
 	return nil

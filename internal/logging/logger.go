@@ -53,25 +53,40 @@ func parseLevel(s string) slog.Level {
 
 // Info logs at INFO level.
 func (lg *Logger) Info(msg string, args ...any) {
+	if lg == nil {
+		return
+	}
 	lg.l.Info(msg, args...)
 }
 
 // Debug logs at DEBUG level.
 func (lg *Logger) Debug(msg string, args ...any) {
+	if lg == nil {
+		return
+	}
 	lg.l.Debug(msg, args...)
 }
 
 // Warn logs at WARN level.
 func (lg *Logger) Warn(msg string, args ...any) {
+	if lg == nil {
+		return
+	}
 	lg.l.Warn(msg, args...)
 }
 
 // Error logs at ERROR level.
 func (lg *Logger) Error(msg string, args ...any) {
+	if lg == nil {
+		return
+	}
 	lg.l.Error(msg, args...)
 }
 
 // With returns a new Logger with additional fields.
 func (lg *Logger) With(args ...any) *Logger {
+	if lg == nil {
+		return nil
+	}
 	return &Logger{l: lg.l.With(args...)}
 }
