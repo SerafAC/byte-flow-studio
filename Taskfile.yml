@@ -41,10 +41,10 @@ tasks:
     cmds:
       - npm run test
 
-  test:internal:
+  test:go:
     summary: Runs Go internal tests
     cmds:
-      - go test ./internal/...
+      - go test -v -race ./...
 
   dev:
     summary: Runs the application in development mode

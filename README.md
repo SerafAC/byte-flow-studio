@@ -7,7 +7,7 @@ A multiplatform desktop application for connecting to live byte-stream data sour
 ByteFlow Studio lets engineers, makers, and researchers compose workflows by dragging and connecting blocks onto a shared canvas. Workflows consist of three block categories:
 
 - **Inputs** — UART/Serial, WebSocket, Signal Simulator
-- **Processing** — Byte Parser, Moving Average, FFT, Scaling, Summation, Passthrough
+- **Processing** — Byte Parser, Moving Average, FFT, Sampling, Scaling, Summation, Passthrough
 - **Analysis** — Line Chart, Bar Chart, FFT Spectrum, Value Display, Data Table
 
 Workflows are saved as `.byteflow` files — a single SQLite database that stores the workflow definition, block configuration, and recorded data sessions.
