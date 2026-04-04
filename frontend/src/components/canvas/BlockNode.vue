@@ -136,17 +136,14 @@ function onOutputPortMouseUp(event: MouseEvent) {
     <!-- Double-click hint for analysis blocks -->
     <div v-if="data.category === 'analysis'" class="analysis-hint">double-click to view</div>
 
-    <!-- Input handles (left side) — hidden for input-category blocks -->
-    <template v-if="data.category !== 'input'">
-      <Handle
-        v-for="port in ['in', 'in-numeric', 'in-raw']"
-        :key="'in-' + port"
-        :id="port"
-        type="target"
-        :position="Position.Left"
-        class="input-handle"
-      />
-    </template>
+    <!-- Input handle (left side) — hidden for input-category blocks -->
+    <Handle
+      v-if="data.category !== 'input'"
+      id="in"
+      type="target"
+      :position="Position.Left"
+      class="input-handle"
+    />
 
     <!-- Output handle (right side) — hidden for analysis-category blocks; merged with quick-add -->
     <div v-if="data.category !== 'analysis'" class="out-port-wrapper">
