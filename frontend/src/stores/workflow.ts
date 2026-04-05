@@ -102,6 +102,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
     _pushHistory()
   }
 
+  async function updateBlockSize(blockId: string, width: number, height: number) {
+    await wails.updateBlockSize(blockId, width, height)
+    const idx = blocks.value.findIndex(b => b.id === blockId)
+    if (idx >= 0) {
+      blocks.value[idx] = { ...blocks.value[idx], width, height }
+    }
+  }
+
   async function undo() {
     if (historyIndex.value > 0) {
       historyIndex.value--
@@ -141,6 +149,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     removeConnection,
     updateBlockParams,
     updateBlockPosition,
+    updateBlockSize,
     undo,
     redo,
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, type Component } from 'vue'
 import { Handle, Position, useNode } from '@vue-flow/core'
+import { NodeResizer } from '@vue-flow/node-resizer'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import type { BlockDef } from '../../services/wails'
@@ -15,6 +16,11 @@ import FFTConfig from '../blocks/processing/FFTConfig.vue'
 import ScalingConfig from '../blocks/processing/ScalingConfig.vue'
 import ByteParserConfig from '../blocks/processing/ByteParserConfig.vue'
 import SamplerConfig from '../blocks/processing/SamplerConfig.vue'
+import LineChartBlock from '../blocks/analysis/LineChartBlock.vue'
+import BarChartBlock from '../blocks/analysis/BarChartBlock.vue'
+import FftSpectrumBlock from '../blocks/analysis/FftSpectrumBlock.vue'
+import ValueDisplayBlock from '../blocks/analysis/ValueDisplayBlock.vue'
+import DataTableBlock from '../blocks/analysis/DataTableBlock.vue'
 
 const props = defineProps<{ data: BlockDef }>()
 
@@ -44,7 +50,31 @@ const configComponentMap: Record<string, Component> = {
 }
 
 const configComponent = computed(() => configComponentMap[props.data.type] ?? null)
+
+const analysisComponentMap: Record<string, Component> = {
+  'line-chart':   LineChartBlock,
+  'bar-chart':    BarChartBlock,
+  'fft-spectrum': FftSpectrumBlock,
+  'value-display': ValueDisplayBlock,
+  'data-table':   DataTableBlock,
+}
+
+const analysisComponent = computed(() =>
+  props.data.category === 'analysis' ? (analysisComponentMap[props.data.type] ?? null) : null
+)
+
 const isSelected = computed(() => !!(node?.selected))
+
+const analysisMinDimensions: Record<string, { minWidth: number; minHeight: number }> = {
+  'line-chart':    { minWidth: 240, minHeight: 160 },
+  'value-display': { minWidth: 140, minHeight: 100 },
+  'bar-chart':     { minWidth: 240, minHeight: 160 },
+  'fft-spectrum':  { minWidth: 240, minHeight: 200 },
+  'data-table':    { minWidth: 200, minHeight: 140 },
+}
+
+const resizerMinWidth = computed(() => analysisMinDimensions[props.data.type]?.minWidth ?? 240)
+const resizerMinHeight = computed(() => analysisMinDimensions[props.data.type]?.minHeight ?? 160)
 
 // Double-click: analysis → fullscreen view; input/processing → open config
 function onDblClick(event: MouseEvent) {
@@ -68,22 +98,26 @@ function deleteBlock(event: MouseEvent) {
 }
 
 const categoryColor: Record<string, string> = {
-  input:      '#3b82f6',
-  processing: '#8b5cf6',
-  analysis:   '#10b981',
+  input:      '#4381cf',
+  processing: '#9d50cf',
+  analysis:   '#49b393',
 }
 
 const statusColor = computed(() => {
   switch (props.data.status) {
-    case 'connected': return '#34d399'
-    case 'error':     return '#f87171'
-    default:          return '#6b7280'
+    case 'connected': return '#49b393'
+    case 'error':     return '#e07a90'
+    default:          return '#4a6090'
   }
 })
 
 const nodeColor = computed(() =>
   props.data.status === 'error' ? '#f97316' : (categoryColor[props.data.category] ?? '#6b7280')
 )
+
+async function onResizeEnd(_: unknown, params: { width: number; height: number }) {
+  await workflowStore.updateBlockSize(props.data.id, params.width, params.height)
+}
 
 let portDragStart = { x: 0, y: 0 }
 
@@ -101,7 +135,12 @@ function onOutputPortMouseUp(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="block-node" :class="{ 'block-node--selected': isSelected }" :style="{ borderColor: nodeColor }" @dblclick="onDblClick">
+  <div
+    class="block-node"
+    :class="{ 'block-node--selected': isSelected, 'block-node--analysis': data.category === 'analysis' }"
+    :style="{ borderColor: nodeColor }"
+    @dblclick="onDblClick"
+  >
     <!-- Status dot -->
     <span class="status-dot" :style="{ background: statusColor }" :title="data.status" />
 
@@ -133,8 +172,25 @@ function onOutputPortMouseUp(event: MouseEvent) {
       {{ data.errorMessage }}
     </div>
 
-    <!-- Double-click hint for analysis blocks -->
-    <div v-if="data.category === 'analysis'" class="analysis-hint">double-click to view</div>
+    <!-- Inline analysis rendering: chart/table/value mounts directly inside the node -->
+    <div v-if="data.category === 'analysis'" class="inline-analysis">
+      <component
+        v-if="analysisComponent"
+        :is="analysisComponent"
+        :block-id="data.id"
+        v-bind="data.params ?? {}"
+      />
+      <div v-else class="inline-analysis-placeholder">Waiting for data…</div>
+    </div>
+
+    <!-- NodeResizer: allows dragging the node corner to resize analysis blocks -->
+    <NodeResizer
+      v-if="data.category === 'analysis'"
+      :min-width="resizerMinWidth"
+      :min-height="resizerMinHeight"
+      :is-visible="isSelected"
+      @resize-end="onResizeEnd"
+    />
 
     <!-- Input handle (left side) — hidden for input-category blocks -->
     <Handle
@@ -191,16 +247,30 @@ function onOutputPortMouseUp(event: MouseEvent) {
   </Dialog>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../../assets/variables' as *;
+
 .block-node {
   position: relative;
   min-width: 140px;
-  background: #1e2d3d;
-  border: 2px solid;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: #e2e8f0;
+  background: $bg-card;
+  border: 1px solid;
+  border-radius: $radius-lg;
+  padding: $space-md $space-lg;
+  font-size: $font-size-base;
+  font-family: $font-body;
+  color: $text-primary;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  // Non-analysis nodes size to their content — no explicit height needed
+}
+
+// Analysis nodes always receive an explicit width+height via the Vue Flow node style prop,
+// so height:100% correctly fills the VueFlow node container without causing a growth loop
+.block-node--analysis {
+  width: 100%;
+  height: 100%;
 }
 
 .status-dot {
@@ -215,78 +285,90 @@ function onOutputPortMouseUp(event: MouseEvent) {
 .block-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-sm;
   flex-wrap: wrap;
 }
 
 .block-label {
+  font-family: $font-display;
   font-weight: 600;
-  font-size: 13px;
+  font-size: $font-size-lg;
+  color: $text-primary;
 }
 
 .block-badge {
-  font-size: 9px;
+  font-size: $font-size-xs;
   font-weight: 700;
   text-transform: uppercase;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: $radius-sm;
   color: white;
 }
 
 .block-error-msg {
-  margin-top: 4px;
-  font-size: 10px;
-  color: #f87171;
+  margin-top: $space-xs;
+  font-size: $font-size-sm;
+  color: $color-danger-light;
   word-break: break-word;
 }
 
-/* Selected node indicator */
+// Selected node: background-shift instead of glow
 .block-node--selected {
-  box-shadow: 0 0 0 2px #f59e0b;
+  background: $bg-block;
 }
 
-/* Action row: floats above the block, revealed on hover.
-   padding-bottom bridges the gap so the mouse can travel from block to buttons
-   without leaving the hover zone. */
+// Action row: floats above the block, revealed on hover.
+// padding-bottom bridges the gap so the mouse can travel from block to buttons
+// without leaving the hover zone.
 .action-row {
   position: absolute;
   top: -30px;
   left: 0;
   display: flex;
-  gap: 4px;
-  padding-bottom: 8px;
+  gap: $space-xs;
+  padding-bottom: $space-md;
   visibility: hidden;
-  z-index: 10;
+  z-index: $z-node;
 }
 .block-node:hover .action-row { visibility: visible; }
 
 .action-btn {
-  background: rgba(255,255,255,0.1);
-  color: #9ca3af;
+  background: rgba(255,255,255,0.07);
+  color: $text-muted;
   border: none;
-  border-radius: 4px;
+  border-radius: $radius-sm;
   width: 22px;
   height: 22px;
-  font-size: 12px;
+  font-size: $font-size-md;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  &:hover { background: rgba(255,255,255,0.14); color: $text-primary; }
 }
-.action-btn:hover { background: rgba(255,255,255,0.2); color: #e2e8f0; }
-.action-btn--delete:hover { background: rgba(239,68,68,0.3); color: #f87171; }
+.action-btn--delete:hover { background: rgba($color-danger, 0.25); color: $color-danger-light; }
 
-/* BUG3: analysis hint text */
-.analysis-hint {
-  margin-top: 4px;
-  font-size: 9px;
+.inline-analysis {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.inline-analysis-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
   color: #6b7280;
   font-style: italic;
-  visibility: hidden;
 }
-.block-node:hover .analysis-hint { visibility: visible; }
 
 .out-port-wrapper {
   position: relative;
@@ -294,13 +376,13 @@ function onOutputPortMouseUp(event: MouseEvent) {
   align-items: center;
 }
 
-/* Output handle: styled as a large clickable "+" button.
-   Click → open QuickAddMenu; drag → Vue Flow connection drag. */
+// Output handle: styled as a large clickable "+" button.
+// Click → open QuickAddMenu; drag → Vue Flow connection drag.
 :deep(.output-handle.vue-flow__handle) {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: $color-primary;
   border: none;
   right: -12px;
   color: white;
@@ -310,19 +392,19 @@ function onOutputPortMouseUp(event: MouseEvent) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
+  z-index: $z-node;
   padding: 0;
+  &:hover { background: darken($color-primary, 10%); }
 }
-:deep(.output-handle.vue-flow__handle:hover) { background: #2563eb; }
 
-/* Input handles: larger target area for easier clicking */
+// Input handles: larger target area for easier clicking
 :deep(.input-handle.vue-flow__handle) {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #6b7280;
+  background: $text-muted;
   border: none;
   left: -7px;
+  &:hover { background: $text-secondary; }
 }
-:deep(.input-handle.vue-flow__handle:hover) { background: #9ca3af; }
 </style>

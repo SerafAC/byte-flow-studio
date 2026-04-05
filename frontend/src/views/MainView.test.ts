@@ -69,7 +69,7 @@ vi.mock('../stores/session', () => ({ useSessionStore: () => mocks.sessionStore 
 
 const globalStubs = {
   // Stub heavy child components
-  BlockLibraryPanel: { template: '<div class="block-library" />' },
+  BlockLibraryPanel: { name: 'BlockLibraryPanel', template: '<div class="block-library" />', emits: ['close'] },
   WorkflowCanvas: { template: '<div class="workflow-canvas" />' },
   SessionPanel: { template: '<div class="session-panel" />' },
   LineChartBlock: { template: '<div class="line-chart-block" />' },
@@ -572,6 +572,37 @@ describe('MainView', () => {
     })
   })
 
+  // ── Block library toggle (T020) ───────────────────────────────────────────
+  // These tests MUST FAIL until T022 is implemented (libraryOpen ref + toolbar icon).
+
+  describe('block library toggle (T020)', () => {
+    it('block library panel is visible by default (libraryOpen starts true)', () => {
+      const wrapper = mountView()
+      expect(wrapper.find('.block-library').exists()).toBe(true)
+    })
+
+    it('emitting close from BlockLibraryPanel hides the panel', async () => {
+      const wrapper = mountView()
+      expect(wrapper.find('.block-library').exists()).toBe(true)
+      await wrapper.findComponent({ name: 'BlockLibraryPanel' }).vm.$emit('close')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.block-library').exists()).toBe(false)
+    })
+
+    it('clicking the toolbar blocks icon re-shows the panel after it was closed', async () => {
+      const wrapper = mountView()
+      await wrapper.findComponent({ name: 'BlockLibraryPanel' }).vm.$emit('close')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.block-library').exists()).toBe(false)
+      // The toolbar icon button to toggle library
+      const toggleBtn = wrapper.find('[data-testid="toggle-library"]')
+      expect(toggleBtn.exists()).toBe(true)
+      await toggleBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.block-library').exists()).toBe(true)
+    })
+  })
+
   // ── Fullscreen overlay ─────────────────────────────────────────────────────
 
   describe('fullscreen', () => {
@@ -615,6 +646,15 @@ describe('MainView', () => {
       wrapper.unmount()
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
       expect(mocks.exitFullscreen).not.toHaveBeenCalled()
+    })
+
+    // T017: WorkflowCanvas must remain in the DOM while the fullscreen overlay is open
+    it('WorkflowCanvas remains in the DOM while the fullscreen overlay is visible (T017)', () => {
+      mocks.workflowStore.blocks = [{ id: 'b1', type: 'line-chart', params: {} }]
+      mocks.fullscreenBlockId.value = 'b1'
+      const wrapper = mountView()
+      expect(wrapper.find('.fullscreen-overlay').exists()).toBe(true)
+      expect(wrapper.find('.workflow-canvas').exists()).toBe(true)
     })
   })
 })

@@ -1,6 +1,66 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+// ============================================================
+// Space Grotesk — display font (headings, labels, node names)
+// ============================================================
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('./fonts/SpaceGrotesk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('./fonts/SpaceGrotesk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('./fonts/SpaceGrotesk-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+// ============================================================
+// uPlot dark theme overrides — align with Nocturnal Architect
+// ============================================================
+.uplot {
+  color: $text-secondary;
+  font-family: $font-body;
+  font-size: $font-size-base;
+}
+
+.u-title {
+  color: $text-primary;
+  font-family: $font-display;
+  font-size: $font-size-md;
+  font-weight: 600;
+}
+
+.u-legend {
+  color: $text-secondary;
+  font-size: $font-size-sm;
+
+  th {
+    color: $text-secondary;
+  }
+
+  .u-marker {
+    border-radius: 50%;
+  }
+}
+
+.u-select {
+  background: rgba(67, 129, 207, 0.1);
+}
+
 // Shared styles for all block configuration forms
 .config-form {
   display: flex;

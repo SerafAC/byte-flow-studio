@@ -210,41 +210,76 @@ function stateColor() {
 }
 
 const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
+
+// Block library toggle state (starts visible, closeable via ✕, reopenable via toolbar)
+const libraryOpen = ref(true)
 </script>
 
 <template>
   <div class="main-layout">
     <ConfirmDialog />
 
-  <!-- Menu bar -->
+    <!-- Canvas fills the full viewport as the background layer -->
+    <WorkflowCanvas class="canvas-fill" />
+
+    <!-- Floating header bar -->
     <div class="menu-bar">
       <span class="app-title">ByteFlow Studio</span>
       <div class="menu-actions">
-        <Button label="Open" size="small" severity="secondary" @click="onOpen" />
-        <Button label="Save" size="small" severity="secondary" @click="onSave" />
+        <button class="ctrl-btn" @click="onOpen">Open</button>
+        <button class="ctrl-btn" @click="onSave">Save</button>
       </div>
       <!-- Pipeline controls -->
       <div class="pipeline-controls">
-        <Button label="Start" size="small" severity="success" :disabled="!pipelineStore.canStart" @click="onStart" />
-        <Button label="Pause" size="small" severity="warn" :disabled="!pipelineStore.canPause" @click="onPause" />
-        <Button label="Resume" size="small" severity="info" :disabled="!pipelineStore.canResume" @click="onResume" />
-        <Button label="Stop" size="small" severity="danger" :disabled="!pipelineStore.canStop" @click="onStop" />
+        <button class="ctrl-btn ctrl-btn--start" :disabled="!pipelineStore.canStart" @click="onStart">Start</button>
+        <button class="ctrl-btn ctrl-btn--pause" :disabled="!pipelineStore.canPause" @click="onPause">Pause</button>
+        <button class="ctrl-btn ctrl-btn--resume" :disabled="!pipelineStore.canResume" @click="onResume">Resume</button>
+        <button class="ctrl-btn ctrl-btn--stop" :disabled="!pipelineStore.canStop" @click="onStop">Stop</button>
         <Tag :value="pipelineStore.flowState.toUpperCase()" :severity="stateColor()" />
       </div>
     </div>
 
-    <!-- T107: FR-004 persistent topology error banner (dismissed on successful start) -->
+    <!-- T107: FR-004 persistent topology error banner -->
     <div v-if="startErrorBanner" class="error-banner error-banner--topology">
       <span>{{ startErrorBanner }}</span>
       <button class="error-banner-dismiss" @click="startErrorBanner = null">✕</button>
     </div>
 
-    <!-- Error banner for FR-004 / block errors -->
+    <!-- Error banner for block errors -->
     <div v-if="pipelineStore.flowState === 'error' && blockErrorEntries().length > 0" class="error-banner">
       <span>Pipeline error — </span>
       <span v-for="[id, msg] in blockErrorEntries()" :key="id">
         <strong>{{ id }}</strong>: {{ msg }};
       </span>
+    </div>
+
+    <!-- Slim toolbar (left, below header) — toggles block library -->
+    <div class="toolbar-strip">
+      <button
+        class="toolbar-btn"
+        data-testid="toggle-library"
+        title="Toggle block library"
+        @click="libraryOpen = !libraryOpen"
+      >⊞</button>
+    </div>
+
+    <!-- Floating block library panel (toggleable) -->
+    <BlockLibraryPanel
+      v-if="libraryOpen"
+      class="panel-library"
+      @close="libraryOpen = false"
+    />
+
+    <!-- Floating sessions panel (right) -->
+    <SessionPanel class="panel-sessions" />
+
+    <!-- Pill-shaped status bar (floating, bottom) -->
+    <div class="status-bar">
+      <span :class="'state-dot state-dot--' + pipelineStore.flowState" />
+      <span>State: {{ pipelineStore.flowState }}</span>
+      <span v-if="pipelineStore.sessionId"> | Session: {{ pipelineStore.sessionId }}</span>
+      <span class="status-spacer" />
+      <span class="status-version">v0.1.0-dev</span>
     </div>
 
     <!-- T106: Corrupted file recovery dialog -->
@@ -260,19 +295,6 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
         </div>
       </div>
     </Teleport>
-
-    <!-- Three-panel body -->
-    <div class="body">
-      <BlockLibraryPanel class="sidebar-left" />
-      <WorkflowCanvas class="canvas-area" />
-      <SessionPanel class="sidebar-right" />
-    </div>
-
-    <!-- Status bar -->
-    <div class="status-bar">
-      <span>State: {{ pipelineStore.flowState }}</span>
-      <span v-if="pipelineStore.sessionId"> | Session: {{ pipelineStore.sessionId }}</span>
-    </div>
   </div>
 
   <!-- Fullscreen overlay -->
@@ -291,57 +313,135 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
   </Teleport>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../assets/variables' as *;
+
+// ── Root layout ────────────────────────────────────────────────────────────────
+
 .main-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #1b2636;
-  color: #e0e0e0;
+  position: fixed;
+  inset: 0;
+  background: $bg-root;
+  color: $text-primary;
+  font-family: $font-body;
 }
 
+// Canvas fills the entire viewport behind the floating panels
+.canvas-fill {
+  position: absolute;
+  inset: 0;
+}
+
+// ── Floating header ────────────────────────────────────────────────────────────
+
 .menu-bar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  height: 56px;
+  z-index: $z-overlay;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: #243447;
-  border-bottom: 1px solid #3a4a5c;
-  flex-shrink: 0;
+  gap: $space-md;
+  padding: 0 $space-xl;
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  -webkit-backdrop-filter: blur($glass-blur);
+  box-shadow: $glass-shadow;
+  border-radius: $radius-xl;
+  border: 1px solid $ghost-border;
 }
 
 .app-title {
-  font-weight: bold;
-  font-size: 14px;
-  margin-right: 12px;
+  font-family: $font-display;
+  font-weight: 600;
+  font-size: $font-size-xl;
+  color: $text-primary;
+  margin-right: $space-md;
+  white-space: nowrap;
 }
 
 .menu-actions {
   display: flex;
-  gap: 6px;
+  gap: $space-sm;
 }
 
 .pipeline-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-sm;
   margin-left: auto;
 }
 
+// ── Control buttons ────────────────────────────────────────────────────────────
+
+.ctrl-btn {
+  height: 28px;
+  padding: 0 $space-lg;
+  border-radius: $radius-md;
+  font-family: $font-display;
+  font-size: $font-size-base;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:disabled { opacity: 0.4; cursor: default; }
+  &:not(:disabled):hover { background: rgba(255,255,255,0.06); color: $text-primary; }
+}
+
+.ctrl-btn--start {
+  border-color: $color-success;
+  color: $color-success;
+  &:not(:disabled):hover { background: rgba($color-success, 0.12); }
+}
+
+.ctrl-btn--pause {
+  border-color: $color-warning;
+  color: $color-warning;
+  &:not(:disabled):hover { background: rgba($color-warning, 0.12); }
+}
+
+.ctrl-btn--resume {
+  background: $color-primary;
+  border-color: $color-primary;
+  color: #fff;
+  &:not(:disabled):hover { background: darken($color-primary, 8%); }
+}
+
+.ctrl-btn--stop {
+  border-color: $color-danger;
+  background: rgba($color-danger, 0.15);
+  color: $color-danger;
+  &:not(:disabled):hover { background: rgba($color-danger, 0.25); }
+}
+
+// ── Error banners ──────────────────────────────────────────────────────────────
+
 .error-banner {
-  background: #7f1d1d;
-  color: #fca5a5;
-  padding: 6px 12px;
-  font-size: 13px;
-  flex-shrink: 0;
+  position: fixed;
+  top: 80px;
+  left: 12px;
+  right: 12px;
+  z-index: $z-overlay;
+  background: rgba($color-danger, 0.2);
+  border: 1px solid $color-danger;
+  color: $color-danger-light;
+  padding: $space-sm $space-xl;
+  font-size: $font-size-md;
+  border-radius: $radius-md;
 }
 
 .error-banner--topology {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #78350f;
-  color: #fde68a;
+  background: rgba($color-warning, 0.15);
+  border-color: $color-warning;
+  color: $color-warning;
 }
 
 .error-banner-dismiss {
@@ -349,46 +449,116 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
   border: none;
   color: inherit;
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 4px;
+  font-size: $font-size-xl;
+  padding: 0 $space-xs;
+  border-radius: $radius-sm;
+  &:hover { background: rgba(255,255,255,0.1); }
 }
 
-.body {
+// ── Toolbar strip ──────────────────────────────────────────────────────────────
+
+.toolbar-strip {
+  position: fixed;
+  top: 80px;
+  bottom: 48px;
+  left: 12px;
+  width: 44px;
+  z-index: $z-overlay;
   display: flex;
-  flex: 1;
-  overflow: hidden;
+  flex-direction: column;
+  align-items: center;
+  padding: $space-md 0;
+  gap: $space-sm;
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  -webkit-backdrop-filter: blur($glass-blur);
+  box-shadow: $glass-shadow;
+  border-radius: $radius-lg;
+  border: 1px solid $ghost-border;
 }
 
-.sidebar-left {
-  width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid #3a4a5c;
-  overflow-y: auto;
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: $radius-md;
+  color: $text-secondary;
+  font-size: 16px;
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.08); color: $text-primary; }
 }
 
-.canvas-area {
-  flex: 1;
-  overflow: hidden;
+// ── Floating panels ────────────────────────────────────────────────────────────
+
+.panel-library {
+  position: fixed;
+  top: 80px;
+  bottom: 48px;
+  left: 68px;
+  width: 256px;
+  z-index: $z-overlay;
 }
 
-.sidebar-right {
-  width: 240px;
-  flex-shrink: 0;
-  border-left: 1px solid #3a4a5c;
-  overflow-y: auto;
+.panel-sessions {
+  position: fixed;
+  top: 80px;
+  bottom: 48px;
+  right: 12px;
+  width: 256px;
+  z-index: $z-overlay;
 }
+
+// ── Status bar pill ────────────────────────────────────────────────────────────
 
 .status-bar {
-  padding: 4px 12px;
-  font-size: 12px;
-  background: #243447;
-  border-top: 1px solid #3a4a5c;
+  position: fixed;
+  bottom: 8px;
+  left: 12px;
+  right: 12px;
+  height: 28px;
+  z-index: $z-overlay;
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: 0 $space-xl;
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  -webkit-backdrop-filter: blur($glass-blur);
+  box-shadow: $glass-shadow;
+  border-radius: 14px;
+  border: 1px solid $ghost-border;
+  font-size: $font-size-sm;
+  color: $text-muted;
+}
+
+.state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
-  color: #9ca3af;
+  background: $status-default;
+
+  &--running  { background: $status-connected; }
+  &--error    { background: $status-error; }
+  &--paused   { background: $color-warning; }
+}
+
+.status-spacer { flex: 1; }
+
+.status-version {
+  color: $text-muted;
+  font-size: $font-size-xs;
+  opacity: 0.6;
 }
 </style>
 
-<style>
+<style lang="scss">
+@use '../assets/variables' as v;
+
 .fullscreen-overlay {
   position: fixed;
   inset: 0;
@@ -403,11 +573,13 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
   position: relative;
   width: 90vw;
   height: 85vh;
-  background: #1e2d3d;
-  border-radius: 12px;
+  background: v.$bg-card;
+  border-radius: v.$radius-xl;
+  border: 1px solid v.$ghost-border;
   padding: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow: v.$glass-shadow;
 }
 
 .fullscreen-close {
@@ -416,15 +588,15 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
   right: 12px;
   background: none;
   border: none;
-  color: #9ca3af;
+  color: v.$text-muted;
   font-size: 18px;
   cursor: pointer;
   z-index: 1;
   line-height: 1;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: v.$radius-md;
 }
-.fullscreen-close:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+.fullscreen-close:hover { background: rgba(255,255,255,0.1); color: v.$text-primary; }
 
 .fullscreen-block {
   flex: 1;
@@ -434,7 +606,7 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
 .recovery-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: v.$z-recovery;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
@@ -442,17 +614,17 @@ const blockErrorEntries = () => Object.entries(pipelineStore.blockErrors)
 }
 
 .recovery-dialog {
-  background: #1e2d3d;
-  border: 1px solid #f59e0b;
-  border-radius: 10px;
+  background: v.$bg-card;
+  border: 1px solid v.$color-warning;
+  border-radius: v.$radius-xl;
   padding: 24px;
   max-width: 480px;
-  color: #e2e8f0;
+  color: v.$text-primary;
 }
 
-.recovery-dialog h3 { margin: 0 0 12px; color: #f59e0b; }
-.recovery-dialog p { font-size: 13px; margin: 0 0 16px; }
-.recovery-dialog code { font-size: 11px; word-break: break-all; color: #93c5fd; }
+.recovery-dialog h3 { margin: 0 0 12px; color: v.$color-warning; }
+.recovery-dialog p { font-size: 13px; margin: 0 0 16px; color: v.$text-secondary; }
+.recovery-dialog code { font-size: 11px; word-break: break-all; color: v.$color-cyan; }
 
 .recovery-actions {
   display: flex;

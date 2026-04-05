@@ -148,53 +148,108 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-.session-panel { padding: 10px; font-size: 12px; }
-.panel-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; }
-.empty-state { color: #6b7280; font-style: italic; font-size: 11px; }
+<style scoped lang="scss">
+@use '../../assets/variables' as *;
+@use '../../assets/mixins' as *;
+
+.session-panel {
+  padding: $space-lg;
+  font-size: $font-size-base;
+  font-family: $font-body;
+  color: $text-primary;
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  -webkit-backdrop-filter: blur($glass-blur);
+  box-shadow: $glass-shadow;
+  border-radius: $radius-lg;
+  border: 1px solid $ghost-border;
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $border-color; border-radius: 2px; }
+}
+
+.panel-title {
+  font-family: $font-display;
+  font-weight: 600;
+  font-size: $font-size-lg;
+  margin-bottom: $space-lg;
+  color: $text-primary;
+}
+
+.empty-state { color: $text-muted; font-style: italic; font-size: $font-size-sm; }
 
 .storage-warning {
-  background: #7c2d12; color: #fed7aa;
-  padding: 6px 8px; border-radius: 4px; margin-bottom: 8px;
-  font-size: 11px; display: flex; align-items: center; justify-content: space-between;
+  background: rgba($color-warning, 0.15);
+  color: $color-warning;
+  border: 1px solid rgba($color-warning, 0.3);
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  margin-bottom: $space-md;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.config-section { margin-bottom: 10px; }
+.config-section { margin-bottom: $space-lg; }
 .config-row {
-  display: flex; gap: 10px; align-items: center;
-  margin-bottom: 6px; font-size: 11px; flex-wrap: wrap;
+  display: flex;
+  gap: $space-lg;
+  align-items: center;
+  margin-bottom: $space-sm;
+  font-size: $font-size-sm;
+  flex-wrap: wrap;
 }
-.config-label { color: #9ca3af; }
+.config-label { color: $text-secondary; }
 
-.storage-section { margin-bottom: 10px; }
+.storage-section { margin-bottom: $space-lg; }
 .storage-label {
-  font-size: 10px; color: #9ca3af; margin-bottom: 3px;
-  display: flex; gap: 6px; align-items: center;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  margin-bottom: $space-xs;
+  display: flex;
+  gap: $space-sm;
+  align-items: center;
 }
 .exceeds-badge {
-  font-size: 9px; color: #ef4444; font-weight: bold;
-  background: #450a0a; padding: 1px 4px; border-radius: 3px;
+  font-size: $font-size-xs;
+  color: $color-danger;
+  font-weight: bold;
+  background: rgba($color-danger, 0.15);
+  padding: 1px 4px;
+  border-radius: $radius-sm;
 }
 .storage-bar-track {
-  height: 4px; background: #374151; border-radius: 2px; overflow: hidden;
+  height: 4px;
+  background: $bg-block;
+  border-radius: 2px;
+  overflow: hidden;
 }
 .storage-bar-fill {
-  height: 100%; background: #3b82f6; transition: width 0.3s;
+  height: 100%;
+  background: $color-primary;
+  transition: width 0.3s;
 }
-.bar-danger { background: #ef4444; }
+.bar-danger { background: $color-danger; }
 
 .session-row {
-  border-bottom: 1px solid #3a4a5c; padding: 6px 0;
-  display: flex; flex-direction: column; gap: 4px;
+  border-bottom: 1px solid $ghost-border;
+  padding: $space-sm 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
 }
-.session-time { color: #d1d5db; font-size: 11px; }
-.session-meta { display: flex; gap: 6px; align-items: center; }
+.session-time { color: $text-primary; font-size: $font-size-sm; }
+.session-meta { display: flex; gap: $space-sm; align-items: center; }
 .tag-done {
-  font-size: 10px; background: #374151; padding: 1px 5px; border-radius: 4px; color: #9ca3af;
+  @include tag;
 }
 .tag-active {
-  font-size: 10px; background: #064e3b; padding: 1px 5px; border-radius: 4px; color: #34d399;
+  @include tag($bg: rgba(73, 179, 147, 0.15), $color: $color-success);
 }
-.session-size { color: #9ca3af; font-size: 10px; margin-left: auto; }
-.session-actions { display: flex; gap: 4px; }
+.session-size { color: $text-muted; font-size: $font-size-xs; margin-left: auto; }
+.session-actions { display: flex; gap: $space-xs; }
 </style>

@@ -7,7 +7,7 @@
 // Analysis block container — the shared layout used by all chart/display
 // blocks (LineChart, BarChart, DataTable, FftSpectrum, ValueDisplay …)
 @mixin analysis-block {
-  background: $bg-card;
+  background: transparent;
   border-radius: $radius-lg;
   padding: $space-md;
   position: relative;
@@ -15,6 +15,20 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  color: $text-primary;
+  font-family: $font-body;
+}
+
+// Wrapper used when an analysis component is mounted inline inside a canvas
+// node (as opposed to the full-screen overlay). Fills the node body, clips
+// overflow so charts don't bleed outside the resizable node boundary.
+@mixin inline-analysis-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 // Chart / canvas area that should fill the remaining space in an analysis block

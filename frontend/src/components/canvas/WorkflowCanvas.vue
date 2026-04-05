@@ -17,13 +17,36 @@ const toast = useToast()
 
 const { onNodesChange, onEdgesChange, onConnect, findNode, getSelectedNodes, getSelectedEdges } = useVueFlow()
 
+// Default dimensions for analysis blocks that haven't been resized yet
+const analysisDefaultDimensions: Record<string, { width: number; height: number }> = {
+  'line-chart':    { width: 320, height: 200 },
+  'value-display': { width: 180, height: 130 },
+  'bar-chart':     { width: 320, height: 200 },
+  'fft-spectrum':  { width: 360, height: 240 },
+  'data-table':    { width: 280, height: 180 },
+}
+
 const nodes = computed(() =>
-  workflowStore.blocks.map(b => ({
-    id: b.id,
-    type: 'block',
-    position: { x: b.positionX, y: b.positionY },
-    data: b,
-  }))
+  workflowStore.blocks.map(b => {
+    if (b.category === 'analysis') {
+      const defaults = analysisDefaultDimensions[b.type] ?? { width: 320, height: 200 }
+      const w = b.width || defaults.width
+      const h = b.height || defaults.height
+      return {
+        id: b.id,
+        type: 'block',
+        position: { x: b.positionX, y: b.positionY },
+        data: b,
+        style: { width: `${w}px`, height: `${h}px` },
+      }
+    }
+    return {
+      id: b.id,
+      type: 'block',
+      position: { x: b.positionX, y: b.positionY },
+      data: b,
+    }
+  })
 )
 
 const edges = computed(() =>
@@ -56,6 +79,7 @@ async function onConnectEdge(conn: Connection) {
 async function onNodeDragStop(event: NodeDragEvent) {
   await workflowStore.updateBlockPosition(event.node.id, event.node.position.x, event.node.position.y)
 }
+
 
 async function onDropBlock(event: DragEvent) {
   event.preventDefault()
@@ -123,17 +147,19 @@ function nodeClass(nodeId: string) {
       @node-drag-stop="onNodeDragStop"
     >
       <Background />
-      <Controls />
-      <MiniMap />
+      <Controls position="top-left" />
+      <MiniMap position="bottom-left" />
     </VueFlow>
   </div>
 </template>
 
-<style>
+<style lang="scss">
+@use '../../assets/variables' as v;
 @import '@vue-flow/core/dist/style.css';
 @import '@vue-flow/core/dist/theme-default.css';
 @import '@vue-flow/controls/dist/style.css';
 @import '@vue-flow/minimap/dist/style.css';
+@import '@vue-flow/node-resizer/dist/style.css';
 
 .canvas-wrapper {
   width: 100%;
@@ -142,6 +168,52 @@ function nodeClass(nodeId: string) {
 }
 
 .node-error .vue-flow__node {
-  border: 2px solid #f87171;
+  border: 2px solid v.$color-danger !important;
+}
+
+// Vue Flow background: override dot/pattern color to stay on-brand
+.vue-flow__background {
+  background-color: v.$bg-root !important;
+}
+
+.vue-flow__background pattern circle,
+.vue-flow__background pattern rect {
+  fill: #1a1e2b !important;
+}
+
+// Edges: subdued tonal color
+.vue-flow__edge-path {
+  stroke: v.$border-color !important;
+  stroke-width: 1.5px;
+}
+.vue-flow__edge:hover .vue-flow__edge-path,
+.vue-flow__edge.selected .vue-flow__edge-path {
+  stroke: v.$color-primary !important;
+}
+
+// Controls: glassmorphic
+.vue-flow__controls {
+  background: v.$glass-bg !important;
+  backdrop-filter: blur(v.$glass-blur) !important;
+  border: 1px solid v.$ghost-border !important;
+  border-radius: v.$radius-lg !important;
+  box-shadow: v.$glass-shadow !important;
+
+  button {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid v.$ghost-border !important;
+    color: v.$text-secondary !important;
+
+    &:last-child { border-bottom: none !important; }
+    &:hover { background: rgba(255,255,255,0.06) !important; color: v.$text-primary !important; }
+  }
+}
+
+// MiniMap: dark tones
+.vue-flow__minimap {
+  background: v.$bg-card !important;
+  border: 1px solid v.$ghost-border !important;
+  border-radius: v.$radius-md !important;
 }
 </style>
