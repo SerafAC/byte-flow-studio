@@ -329,6 +329,21 @@ func (s *WorkflowService) UpdateBlockPosition(blockID string, x, y float64) erro
 	return nil
 }
 
+// UpdateBlockSize persists a new canvas width and height for a block.
+func (s *WorkflowService) UpdateBlockSize(blockID string, width, height float64) error {
+	if width <= 0 || height <= 0 {
+		return fmt.Errorf("invalid size: width=%f height=%f", width, height)
+	}
+	b := s.findBlockRef(blockID)
+	if b == nil {
+		return fmt.Errorf("block not found: %s", blockID)
+	}
+	b.Width = width
+	b.Height = height
+	s.current.UpdatedAt = time.Now().UnixMilli()
+	return nil
+}
+
 // GetAvailableBlockTypes returns the full catalogue of registered block types.
 func (s *WorkflowService) GetAvailableBlockTypes() []BlockTypeDescriptor {
 	descriptors := blockTypeDescriptors()

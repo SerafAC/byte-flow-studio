@@ -10,6 +10,8 @@ type BlockDef struct {
 	Params       map[string]any `json:"params"`
 	PositionX    float64        `json:"positionX"`
 	PositionY    float64        `json:"positionY"`
+	Width        float64        `json:"width,omitempty"`
+	Height       float64        `json:"height,omitempty"`
 	Status       string         `json:"status,omitempty"`
 	ErrorMessage string         `json:"errorMessage,omitempty"`
 }

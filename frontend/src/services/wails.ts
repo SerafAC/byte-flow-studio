@@ -13,6 +13,8 @@ export interface BlockDef {
   params: Record<string, unknown>
   positionX: number
   positionY: number
+  width?: number
+  height?: number
   status?: string
   errorMessage?: string
 }
@@ -187,6 +189,11 @@ export async function updateBlockParams(blockId: string, params: Record<string, 
 export async function updateBlockPosition(blockId: string, x: number, y: number): Promise<void> {
   const svc = await workflowSvc()
   return cast<void>(svc.UpdateBlockPosition(blockId, x, y))
+}
+
+export async function updateBlockSize(blockId: string, width: number, height: number): Promise<void> {
+  const svc = await workflowSvc()
+  return cast<void>(svc.UpdateBlockSize(blockId, width, height))
 }
 
 export async function restoreBlocks(blocks: BlockDef[], connections: ConnectionDef[]): Promise<void> {

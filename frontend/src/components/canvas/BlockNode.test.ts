@@ -19,6 +19,10 @@ vi.mock('@vue-flow/core', () => ({
   useNode: () => ({ node: { selected: mocks.nodeSelected, position: { x: 0, y: 0 } } }),
 }))
 
+vi.mock('@vue-flow/node-resizer', () => ({
+  NodeResizer: { template: '<div class="node-resizer-stub" />' },
+}))
+
 vi.mock('../../composables/useFullscreen', () => ({
   useFullscreen: () => ({
     enterFullscreen: mocks.enterFullscreen,
@@ -63,6 +67,7 @@ const globalStubs = {
   Dialog: DialogStub,
   Button: ButtonStub,
   QuickAddMenu: { template: '<div />' },
+  NodeResizer: { template: '<div />' },
   UartBlockConfig: makeConfigStub(),
   SimulatorBlockConfig: makeConfigStub(),
   WebSocketBlockConfig: makeConfigStub(),
@@ -70,6 +75,12 @@ const globalStubs = {
   FFTConfig: makeConfigStub(),
   ScalingConfig: makeConfigStub(),
   ByteParserConfig: makeConfigStub(),
+  SamplerConfig: makeConfigStub(),
+  LineChartBlock: { template: '<div class="line-chart-stub" />' },
+  BarChartBlock: { template: '<div class="bar-chart-stub" />' },
+  FftSpectrumBlock: { template: '<div class="fft-spectrum-stub" />' },
+  ValueDisplayBlock: { template: '<div class="value-display-stub" />' },
+  DataTableBlock: { template: '<div class="data-table-stub" />' },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -129,14 +140,14 @@ describe('BlockNode', () => {
     expect(w.find('.block-error-msg').exists()).toBe(false)
   })
 
-  it('shows analysis hint for analysis blocks', () => {
+  it('shows inline analysis wrapper for analysis blocks', () => {
     const w = mountNode(makeBlock({ category: 'analysis', type: 'line-chart' }))
-    expect(w.find('.analysis-hint').exists()).toBe(true)
+    expect(w.find('.inline-analysis').exists()).toBe(true)
   })
 
-  it('does not show analysis hint for input blocks', () => {
+  it('does not show inline analysis wrapper for input blocks', () => {
     const w = mountNode(makeBlock({ category: 'input' }))
-    expect(w.find('.analysis-hint').exists()).toBe(false)
+    expect(w.find('.inline-analysis').exists()).toBe(false)
   })
 
   it('hides input handles for input-category blocks but keeps output handle', () => {
@@ -279,5 +290,41 @@ describe('BlockNode', () => {
     await w.find('button[title="Open configuration"]').trigger('click')
     expect(w.find('.dialog-stub').exists()).toBe(true)
     expect(w.find('.config-stub').exists()).toBe(true)
+  })
+
+  // ── Double-click + inline component coexistence (T016) ────────────────────────
+
+  it('double-click on analysis block calls enterFullscreen AND keeps inline component mounted', async () => {
+    const w = mountNode(makeBlock({ id: 'chart-1', category: 'analysis', type: 'line-chart' }))
+    // Inline component must be present before dblclick
+    expect(w.find('.inline-analysis').exists()).toBe(true)
+    await w.find('.block-node').trigger('dblclick')
+    expect(mocks.enterFullscreen).toHaveBeenCalledWith('chart-1')
+    // Inline component must still be present after dblclick (not unmounted)
+    expect(w.find('.inline-analysis').exists()).toBe(true)
+  })
+
+  // ── Inline analysis rendering (T009) ──────────────────────────────────────────
+  // These tests MUST FAIL until T014 is implemented (canvas-inline analysis feature).
+
+  it('renders inline analysis component for analysis blocks', () => {
+    const w = mountNode(makeBlock({ category: 'analysis', type: 'line-chart' }))
+    // Expect a wrapper element with class .inline-analysis to be present
+    expect(w.find('.inline-analysis').exists()).toBe(true)
+  })
+
+  it('does not render inline analysis component for input blocks', () => {
+    const w = mountNode(makeBlock({ category: 'input', type: 'simulator' }))
+    expect(w.find('.inline-analysis').exists()).toBe(false)
+  })
+
+  it('does not render inline analysis component for processing blocks', () => {
+    const w = mountNode(makeBlock({ category: 'processing', type: 'moving-average' }))
+    expect(w.find('.inline-analysis').exists()).toBe(false)
+  })
+
+  it('renders inline analysis component for bar-chart analysis blocks', () => {
+    const w = mountNode(makeBlock({ category: 'analysis', type: 'bar-chart' }))
+    expect(w.find('.inline-analysis').exists()).toBe(true)
   })
 })
