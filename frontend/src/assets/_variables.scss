@@ -33,12 +33,12 @@ $status-error:     $color-danger-light;
 $status-default:   $text-muted;
 
 // Glassmorphism
-$glass-bg:     rgba(13, 27, 56, 0.85); // floating panel fill
+$glass-bg:     #1C1F2B; // floating panel fill
 $glass-blur:   16px;                    // backdrop blur
 $glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 
 // Ghost border — accessibility boundary, barely visible
-$ghost-border: rgba(43, 70, 128, 0.15);
+$ghost-border: #282C3C;
 
 // Spacing (use as padding / gap / margin values)
 $space-xs:  4px;

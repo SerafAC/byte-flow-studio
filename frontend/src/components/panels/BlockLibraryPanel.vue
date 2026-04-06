@@ -171,7 +171,7 @@ function monogram(label: string) {
   height: 96px;
   border-radius: $radius-md;
   cursor: grab;
-  background: rgba(255, 255, 255, 0.04);
+  background: #161923;
   border: 1px solid $ghost-border;
   transition: background $transition-fast, border-color $transition-fast;
   overflow: hidden;

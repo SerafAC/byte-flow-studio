@@ -111,7 +111,7 @@ defineExpose({ open })
   background: none;
   border: none;
   cursor: pointer;
-  color: #e2e8f0;
+  color: #595959;
   font-size: 12px;
   border-radius: 4px;
   text-align: left;

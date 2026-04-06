@@ -154,7 +154,7 @@ function nodeClass(nodeId: string) {
       @connect="onConnectEdge"
       @node-drag-stop="onNodeDragStop"
     >
-      <Background />
+      <Background :size="3"/>
       <Controls position="top-right" />
       <MiniMap position="bottom-right" />
     </VueFlow>
@@ -186,7 +186,7 @@ function nodeClass(nodeId: string) {
 
 .vue-flow__background pattern circle,
 .vue-flow__background pattern rect {
-  fill: #1a1e2b !important;
+  fill: #242938 !important;
 }
 
 // Edges: subdued tonal color
