@@ -4,6 +4,7 @@ import Popover from 'primevue/popover'
 import InputText from 'primevue/inputtext'
 import * as wails from '../../services/wails'
 import type { BlockTypeDescriptor } from '../../services/wails'
+import { useWorkflowStore } from '../../stores/workflow'
 
 const props = defineProps<{
   sourceBlockId: string
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 const popover = ref()
 const search = ref('')
 const allBlockTypes = ref<BlockTypeDescriptor[]>([])
+const workflowStore = useWorkflowStore()
 
 onMounted(async () => {
   allBlockTypes.value = await wails.getAvailableBlockTypes()
@@ -42,9 +44,8 @@ const compatibleBlocks = computed(() => {
 
 async function selectBlock(bt: BlockTypeDescriptor) {
   try {
-    const newBlock = await wails.addBlock(bt.type, props.sourceX + 250, props.sourceY)
-    // Connect first compatible input port
-    await wails.addConnection(props.sourceBlockId, props.sourcePortId, newBlock.id, 'in')
+    const newBlock = await workflowStore.addBlock(bt.type, props.sourceX + 250, props.sourceY)
+    await workflowStore.addConnection(props.sourceBlockId, props.sourcePortId, newBlock.id, 'in')
   } catch {
     // Best-effort — ignore if connection fails
   }
