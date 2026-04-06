@@ -60,6 +60,13 @@ const edges = computed(() =>
   }))
 )
 
+function isValidConnection(conn: Connection): boolean {
+  // Prevent self-connections
+  if (conn.source === conn.target) return false
+  // Only allow source handle ("out") → input handle ("in"); blocks output→output
+  return conn.sourceHandle === 'out' && conn.targetHandle === 'in'
+}
+
 async function onConnectEdge(conn: Connection) {
   try {
     await workflowStore.addConnection(
@@ -143,12 +150,13 @@ function nodeClass(nodeId: string) {
       :node-types="{ block: BlockNode }"
       fit-view-on-init
       multi-selection-key-code="Shift"
+      :is-valid-connection="isValidConnection"
       @connect="onConnectEdge"
       @node-drag-stop="onNodeDragStop"
     >
       <Background />
-      <Controls position="top-left" />
-      <MiniMap position="bottom-left" />
+      <Controls position="top-right" />
+      <MiniMap position="bottom-right" />
     </VueFlow>
   </div>
 </template>
@@ -191,13 +199,18 @@ function nodeClass(nodeId: string) {
   stroke: v.$color-primary !important;
 }
 
-// Controls: glassmorphic
+// Controls: glassmorphic + reposition below menu bar, left of sessions panel
 .vue-flow__controls {
   background: v.$glass-bg !important;
   backdrop-filter: blur(v.$glass-blur) !important;
   border: 1px solid v.$ghost-border !important;
   border-radius: v.$radius-lg !important;
   box-shadow: v.$glass-shadow !important;
+  // Keep away from left sidebar; sessions panel is 256px + 12px right = 268px from right
+  right: 280px !important;
+  left: auto !important;
+  top: 80px !important; // below menu bar (12px top + 56px height + 12px gap)
+  bottom: auto !important;
 
   button {
     background: transparent !important;
@@ -210,10 +223,14 @@ function nodeClass(nodeId: string) {
   }
 }
 
-// MiniMap: dark tones
+// MiniMap: dark tones + reposition above status bar, left of sessions panel
 .vue-flow__minimap {
   background: v.$bg-card !important;
   border: 1px solid v.$ghost-border !important;
   border-radius: v.$radius-md !important;
+  right: 280px !important;
+  left: auto !important;
+  bottom: 52px !important; // above status bar (8px bottom + 28px height + 16px gap)
+  top: auto !important;
 }
 </style>
