@@ -16,6 +16,13 @@ vi.mock('../../services/wails', () => ({
   addConnection: mocks.addConnection,
 }))
 
+vi.mock('../../stores/workflow', () => ({
+  useWorkflowStore: () => ({
+    addBlock: mocks.addBlock,
+    addConnection: mocks.addConnection,
+  }),
+}))
+
 // ── Test data ────────────────────────────────────────────────────────────────
 
 const allBlocks = [
