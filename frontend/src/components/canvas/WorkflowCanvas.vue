@@ -156,7 +156,7 @@ function nodeClass(nodeId: string) {
     >
       <Background :size="3"/>
       <Controls position="top-right" />
-      <MiniMap position="bottom-right" />
+      <MiniMap position="bottom-right" maskColor="red"/>
     </VueFlow>
   </div>
 </template>
@@ -191,8 +191,8 @@ function nodeClass(nodeId: string) {
 
 // Edges: subdued tonal color
 .vue-flow__edge-path {
-  stroke: v.$border-color !important;
-  stroke-width: 1.5px;
+  stroke: purple;
+  stroke-width: 2px;
 }
 .vue-flow__edge:hover .vue-flow__edge-path,
 .vue-flow__edge.selected .vue-flow__edge-path {
@@ -206,6 +206,7 @@ function nodeClass(nodeId: string) {
   border: 1px solid v.$ghost-border !important;
   border-radius: v.$radius-lg !important;
   box-shadow: v.$glass-shadow !important;
+  fill: v.$text-primary;
   // Keep away from left sidebar; sessions panel is 256px + 12px right = 268px from right
   right: 280px !important;
   left: auto !important;
@@ -225,12 +226,16 @@ function nodeClass(nodeId: string) {
 
 // MiniMap: dark tones + reposition above status bar, left of sessions panel
 .vue-flow__minimap {
-  background: v.$bg-card !important;
+  background: v.$bg-card;
+  padding: 5px;
   border: 1px solid v.$ghost-border !important;
   border-radius: v.$radius-md !important;
   right: 280px !important;
   left: auto !important;
   bottom: 52px !important; // above status bar (8px bottom + 28px height + 16px gap)
   top: auto !important;
+}
+.vue-flow__minimap-mask {
+  fill: v.$bg-card;
 }
 </style>
