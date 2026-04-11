@@ -45,6 +45,14 @@ func (m *mockEmitter) findEvent(name, msgSubstr string) bool {
 	return false
 }
 
+func (m *mockEmitter) snapshot() []struct{ name string; data any } {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := make([]struct{ name string; data any }, len(m.events))
+	copy(cp, m.events)
+	return cp
+}
+
 // stubInputBlock emits n DataChunks then blocks until context is cancelled.
 type stubInputBlock struct {
 	id     string
@@ -459,7 +467,7 @@ func TestEngineBackpressureFrameDrop(t *testing.T) {
 	// T104 implementation will emit "frames dropped: 100" when 100 consecutive drops happen.
 	// With current implementation (no backpressure), this assertion will FAIL (TDD red phase).
 	found := emitter.findEvent("pipeline:block-status", "frames dropped: 100")
-	assert.True(t, found, "expected pipeline:block-status event with 'frames dropped: 100' after backpressure; got events: %v", emitter.events)
+	assert.True(t, found, "expected pipeline:block-status event with 'frames dropped: 100' after backpressure; got events: %v", emitter.snapshot())
 
 	require.NoError(t, engine.Stop())
 }
