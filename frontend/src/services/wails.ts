@@ -211,6 +211,17 @@ export async function listSerialPorts(): Promise<SerialPortInfo[]> {
   return cast<SerialPortInfo[]>(svc.ListSerialPorts())
 }
 
+export interface BluetoothDeviceInfo {
+  address: string
+  name: string
+  port: string
+}
+
+export async function listBluetoothDevices(): Promise<BluetoothDeviceInfo[]> {
+  const svc = await workflowSvc()
+  return cast<BluetoothDeviceInfo[]>(svc.ListBluetoothDevices())
+}
+
 // ── PipelineService API ───────────────────────────────────────────────────────
 
 export async function startPipeline(): Promise<void> {

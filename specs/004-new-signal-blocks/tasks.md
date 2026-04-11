@@ -19,9 +19,9 @@
 
 **Purpose**: Register all 6 new block types in backend and frontend so the canvas recognizes them.
 
-- [ ] T001 Add 6 block type descriptors (bluetooth, multiply, filter, derivative, spectrum-viewer, hex-viewer) in services/workflow_service.go → blockTypeDescriptors()
-- [ ] T002 Prepare frontend/src/components/canvas/BlockNode.vue for new block types — add placeholder comments in configComponentMap for bluetooth, multiply, filter, derivative, spectrum-viewer, hex-viewer (actual imports added per story phase when components are created)
-- [ ] T003 Add default dimensions for spectrum-viewer and hex-viewer analysis blocks in frontend/src/components/canvas/WorkflowCanvas.vue → analysisDefaultDimensions
+- [x] T001 Add 6 block type descriptors (bluetooth, multiply, filter, derivative, spectrum-viewer, hex-viewer) in services/workflow_service.go → blockTypeDescriptors()
+- [x] T002 Prepare frontend/src/components/canvas/BlockNode.vue for new block types — add placeholder comments in configComponentMap for bluetooth, multiply, filter, derivative, spectrum-viewer, hex-viewer (actual imports added per story phase when components are created)
+- [x] T003 Add default dimensions for spectrum-viewer and hex-viewer analysis blocks in frontend/src/components/canvas/WorkflowCanvas.vue → analysisDefaultDimensions
 
 ---
 
@@ -33,8 +33,8 @@
 
 > **NOTE: Write tests FIRST, ensure they FAIL before implementation (Constitution Principle II)**
 
-- [ ] T004 Write unit tests for Butterworth coefficient computation verifying known coefficient values for each filter mode (LP/HP/BP/BS) at various orders in internal/processing/filter_test.go
-- [ ] T005 Implement Butterworth filter coefficient computation (bilinear transform, lowpass/highpass/bandpass/bandstop prototypes) as internal helper functions in internal/processing/filter.go — these are pure math functions testable in isolation
+- [x] T004 Write unit tests for Butterworth coefficient computation verifying known coefficient values for each filter mode (LP/HP/BP/BS) at various orders in internal/processing/filter_test.go
+- [x] T005 Implement Butterworth filter coefficient computation (bilinear transform, lowpass/highpass/bandpass/bandstop prototypes) as internal helper functions in internal/processing/filter.go — these are pure math functions testable in isolation
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -50,19 +50,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US2] Write unit tests for Filter block Configure() validating mode, cutoff, order params and rejection of invalid values in internal/processing/filter_test.go
-- [ ] T007 [P] [US2] Write unit tests for Filter block Run() verifying low-pass filtering attenuates high frequencies using known sine wave inputs in internal/processing/filter_test.go
-- [ ] T008 [P] [US2] Write unit tests for Filter block Run() verifying high-pass, band-pass, and band-stop modes produce correct frequency responses in internal/processing/filter_test.go
-- [ ] T009 [P] [US2] Write unit test for Filter block verifying real-time parameter changes (reconfigure while running) in internal/processing/filter_test.go
+- [x] T006 [P] [US2] Write unit tests for Filter block Configure() validating mode, cutoff, order params and rejection of invalid values in internal/processing/filter_test.go
+- [x] T007 [P] [US2] Write unit tests for Filter block Run() verifying low-pass filtering attenuates high frequencies using known sine wave inputs in internal/processing/filter_test.go
+- [x] T008 [P] [US2] Write unit tests for Filter block Run() verifying high-pass, band-pass, and band-stop modes produce correct frequency responses in internal/processing/filter_test.go
+- [x] T009 [P] [US2] Write unit test for Filter block verifying real-time parameter changes (reconfigure while running) in internal/processing/filter_test.go
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Implement Filter block struct, ID/Type/Category/Ports methods, and Configure() with validation in internal/processing/filter.go
-- [ ] T011 [US2] Implement Filter block Run() applying Direct Form II Transposed IIR filter with coefficient recomputation on parameter change in internal/processing/filter.go
-- [ ] T012 [US2] Register filter block factory in init() in internal/processing/filter.go
-- [ ] T013 [P] [US2] Create FilterConfig.vue with mode dropdown (lowpass/highpass/bandpass/bandstop), cutoff frequency inputs, order slider, and sample rate input in frontend/src/components/blocks/processing/FilterConfig.vue
-- [ ] T014 [US2] Add FilterConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T015 [US2] Add structured logging for filter lifecycle (configure, mode change, coefficient recomputation, error) in internal/processing/filter.go
+- [x] T010 [US2] Implement Filter block struct, ID/Type/Category/Ports methods, and Configure() with validation in internal/processing/filter.go
+- [x] T011 [US2] Implement Filter block Run() applying Direct Form II Transposed IIR filter with coefficient recomputation on parameter change in internal/processing/filter.go
+- [x] T012 [US2] Register filter block factory in init() in internal/processing/filter.go
+- [x] T013 [P] [US2] Create FilterConfig.vue with mode dropdown (lowpass/highpass/bandpass/bandstop), cutoff frequency inputs, order slider, and sample rate input in frontend/src/components/blocks/processing/FilterConfig.vue
+- [x] T014 [US2] Add FilterConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T015 [US2] Add structured logging for filter lifecycle (configure, mode change, coefficient recomputation, error) in internal/processing/filter.go
 
 **Checkpoint**: Filter block fully functional — test with Simulator → Filter → Line Chart workflow
 
@@ -78,22 +78,22 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US1] Write unit tests for Bluetooth block Configure() validating deviceAddress and serialPort params in internal/input/bluetooth_test.go
-- [ ] T017 [P] [US1] Write unit tests for Bluetooth block Run() verifying raw byte streaming using io.Pipe() mock reader in internal/input/bluetooth_test.go
-- [ ] T018 [P] [US1] Write unit tests for Bluetooth block disconnect detection (io.EOF → BlockError) and auto-reconnect with backoff in internal/input/bluetooth_test.go
-- [ ] T019 [P] [US1] Write unit tests for Bluetooth block context cancellation causing clean shutdown in internal/input/bluetooth_test.go
+- [x] T016 [P] [US1] Write unit tests for Bluetooth block Configure() validating deviceAddress and serialPort params in internal/input/bluetooth_test.go
+- [x] T017 [P] [US1] Write unit tests for Bluetooth block Run() verifying raw byte streaming using io.Pipe() mock reader in internal/input/bluetooth_test.go
+- [x] T018 [P] [US1] Write unit tests for Bluetooth block disconnect detection (io.EOF → BlockError) and auto-reconnect with backoff in internal/input/bluetooth_test.go
+- [x] T019 [P] [US1] Write unit tests for Bluetooth block context cancellation causing clean shutdown in internal/input/bluetooth_test.go
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Implement platform-specific Bluetooth device discovery (list paired SPP devices) using os/exec calls to bluetoothctl (Linux), system_profiler (macOS), PowerShell (Windows) in internal/input/bluetooth.go
-- [ ] T021 [US1] Implement Bluetooth block struct, ID/Type/Category/Ports methods, and Configure() in internal/input/bluetooth.go
-- [ ] T022 [US1] Implement Bluetooth block Run() with serial port connection via go.bug.st/serial, raw byte streaming, and disconnect detection in internal/input/bluetooth.go
-- [ ] T023 [US1] Implement auto-reconnect with exponential backoff (1s-30s) and visible retry status via pipeline:block-status events in internal/input/bluetooth.go
-- [ ] T024 [US1] Register bluetooth block factory in init() in internal/input/bluetooth.go
-- [ ] T025 [US1] Add listBluetoothDevices() Wails-bound method returning paired device list in services/workflow_service.go
-- [ ] T026 [P] [US1] Create BluetoothBlockConfig.vue with device dropdown (refresh button calling listBluetoothDevices()), connection status indicator, optional serial port override in frontend/src/components/blocks/inputs/BluetoothBlockConfig.vue
-- [ ] T027 [US1] Add BluetoothBlockConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T028 [US1] Add structured logging for Bluetooth lifecycle (discovery, connect, disconnect, reconnect attempts, errors) in internal/input/bluetooth.go
+- [x] T020 [US1] Implement platform-specific Bluetooth device discovery (list paired SPP devices) using os/exec calls to bluetoothctl (Linux), system_profiler (macOS), PowerShell (Windows) in internal/input/bluetooth.go
+- [x] T021 [US1] Implement Bluetooth block struct, ID/Type/Category/Ports methods, and Configure() in internal/input/bluetooth.go
+- [x] T022 [US1] Implement Bluetooth block Run() with serial port connection via go.bug.st/serial, raw byte streaming, and disconnect detection in internal/input/bluetooth.go
+- [x] T023 [US1] Implement auto-reconnect with exponential backoff (1s-30s) and visible retry status via pipeline:block-status events in internal/input/bluetooth.go
+- [x] T024 [US1] Register bluetooth block factory in init() in internal/input/bluetooth.go
+- [x] T025 [US1] Add listBluetoothDevices() Wails-bound method returning paired device list in services/workflow_service.go
+- [x] T026 [P] [US1] Create BluetoothBlockConfig.vue with device dropdown (refresh button calling listBluetoothDevices()), connection status indicator, optional serial port override in frontend/src/components/blocks/inputs/BluetoothBlockConfig.vue
+- [x] T027 [US1] Add BluetoothBlockConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T028 [US1] Add structured logging for Bluetooth lifecycle (discovery, connect, disconnect, reconnect attempts, errors) in internal/input/bluetooth.go
 
 **Checkpoint**: Bluetooth block fully functional — test with paired SPP device → Hex Viewer workflow
 
@@ -109,16 +109,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T029 [P] [US5] Write unit tests for Derivative block verifying constant input → zero output, linear ramp → constant output, first sample → zero output in internal/processing/derivative_test.go
-- [ ] T030 [P] [US5] Write unit test for Derivative block verifying variable time intervals (different timestamps between samples) produce correct dt-based derivatives in internal/processing/derivative_test.go
+- [x] T029 [P] [US5] Write unit tests for Derivative block verifying constant input → zero output, linear ramp → constant output, first sample → zero output in internal/processing/derivative_test.go
+- [x] T030 [P] [US5] Write unit test for Derivative block verifying variable time intervals (different timestamps between samples) produce correct dt-based derivatives in internal/processing/derivative_test.go
 
 ### Implementation for User Story 5
 
-- [ ] T031 [US5] Implement Derivative block struct, ID/Type/Category/Ports methods, Configure(), and Run() with backward finite difference (y[n]-y[n-1])/(t[n]-t[n-1]) in internal/processing/derivative.go
-- [ ] T032 [US5] Register derivative block factory in init() in internal/processing/derivative.go
-- [ ] T033 [P] [US5] Create DerivativeConfig.vue as minimal config component (no user-configurable params, display-only info) in frontend/src/components/blocks/processing/DerivativeConfig.vue
-- [ ] T034 [US5] Add DerivativeConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T035 [US5] Add structured logging for derivative block lifecycle in internal/processing/derivative.go
+- [x] T031 [US5] Implement Derivative block struct, ID/Type/Category/Ports methods, Configure(), and Run() with backward finite difference (y[n]-y[n-1])/(t[n]-t[n-1]) in internal/processing/derivative.go
+- [x] T032 [US5] Register derivative block factory in init() in internal/processing/derivative.go
+- [x] T033 [P] [US5] Create DerivativeConfig.vue as minimal config component (no user-configurable params, display-only info) in frontend/src/components/blocks/processing/DerivativeConfig.vue
+- [x] T034 [US5] Add DerivativeConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T035 [US5] Add structured logging for derivative block lifecycle in internal/processing/derivative.go
 
 **Checkpoint**: Derivative block fully functional — test with Simulator → Derivative → Line Chart
 
@@ -134,18 +134,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T036 [P] [US4] Write unit tests for Multiply block Configure() validating inputCount (2-8) and dynamic port creation in internal/processing/multiply_test.go
-- [ ] T037 [P] [US4] Write unit tests for Multiply block Run() verifying 2-input product, 3-input product, and single-input passthrough in internal/processing/multiply_test.go
-- [ ] T038 [P] [US4] Write unit test for Multiply block verifying latest-value-wins sync behavior when inputs arrive at different rates in internal/processing/multiply_test.go
+- [x] T036 [P] [US4] Write unit tests for Multiply block Configure() validating inputCount (2-8) and dynamic port creation in internal/processing/multiply_test.go
+- [x] T037 [P] [US4] Write unit tests for Multiply block Run() verifying 2-input product, 3-input product, and single-input passthrough in internal/processing/multiply_test.go
+- [x] T038 [P] [US4] Write unit test for Multiply block verifying latest-value-wins sync behavior when inputs arrive at different rates in internal/processing/multiply_test.go
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] Implement Multiply block struct with dynamic input ports (in-0..in-N), pending value map, and Configure() in internal/processing/multiply.go
-- [ ] T040 [US4] Implement Multiply block Run() with fan-in from multiple input channels, latest-value-wins sync, and product computation in internal/processing/multiply.go
-- [ ] T041 [US4] Register multiply block factory in init() in internal/processing/multiply.go
-- [ ] T042 [P] [US4] Create MultiplyConfig.vue with inputCount selector (2-8) in frontend/src/components/blocks/processing/MultiplyConfig.vue
-- [ ] T043 [US4] Add MultiplyConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T044 [US4] Add structured logging for multiply block lifecycle in internal/processing/multiply.go
+- [x] T039 [US4] Implement Multiply block struct with dynamic input ports (in-0..in-N), pending value map, and Configure() in internal/processing/multiply.go
+- [x] T040 [US4] Implement Multiply block Run() with fan-in from multiple input channels, latest-value-wins sync, and product computation in internal/processing/multiply.go
+- [x] T041 [US4] Register multiply block factory in init() in internal/processing/multiply.go
+- [x] T042 [P] [US4] Create MultiplyConfig.vue with inputCount selector (2-8) in frontend/src/components/blocks/processing/MultiplyConfig.vue
+- [x] T043 [US4] Add MultiplyConfig import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T044 [US4] Add structured logging for multiply block lifecycle in internal/processing/multiply.go
 
 **Checkpoint**: Multiply block fully functional — test with Simulator + Simulator → Multiply → Line Chart
 
@@ -161,19 +161,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T045 [P] [US3] Write unit tests for SpectrumViewer analysis block verifying BufferConfig, Snapshot(), and data buffering in internal/analysis/spectrumviewer_test.go
-- [ ] T046 [P] [US3] Write unit tests for SpectrumViewer Configure() validating colorMap, frequency range, and amplitude range params in internal/analysis/spectrumviewer_test.go
+- [x] T045 [P] [US3] Write unit tests for SpectrumViewer analysis block verifying BufferConfig, Snapshot(), and data buffering in internal/analysis/spectrumviewer_test.go
+- [x] T046 [P] [US3] Write unit tests for SpectrumViewer Configure() validating colorMap, frequency range, and amplitude range params in internal/analysis/spectrumviewer_test.go
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Implement SpectrumViewer analysis block struct implementing AnalysisBlock interface with buffer management in internal/analysis/spectrumviewer.go
-- [ ] T048 [US3] Implement SpectrumViewer Configure() with colorMap, frequency range, and amplitude range validation in internal/analysis/spectrumviewer.go
-- [ ] T049 [US3] Register spectrum-viewer analysis block factory via registerAnalysis() in internal/analysis/spectrumviewer.go
-- [ ] T050 [US3] Create SpectrumViewerBlock.vue with Canvas 2D waterfall rendering — self-copy scroll, amplitude-to-color mapping (viridis/magma/inferno/plasma/grayscale), frequency/time axes in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
-- [ ] T051 [US3] Implement color map lookup tables (viridis, magma, inferno, plasma, grayscale) as reusable utility in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
-- [ ] T052 [US3] Wire SpectrumViewerBlock.vue to useAnalysisBlock() composable for pipeline:data event subscription and ring buffer management in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
-- [ ] T053 [US3] Add SpectrumViewerBlock import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T054 [US3] Add structured logging for spectrum viewer lifecycle in internal/analysis/spectrumviewer.go
+- [x] T047 [US3] Implement SpectrumViewer analysis block struct implementing AnalysisBlock interface with buffer management in internal/analysis/spectrumviewer.go
+- [x] T048 [US3] Implement SpectrumViewer Configure() with colorMap, frequency range, and amplitude range validation in internal/analysis/spectrumviewer.go
+- [x] T049 [US3] Register spectrum-viewer analysis block factory via registerAnalysis() in internal/analysis/spectrumviewer.go
+- [x] T050 [US3] Create SpectrumViewerBlock.vue with Canvas 2D waterfall rendering — self-copy scroll, amplitude-to-color mapping (viridis/magma/inferno/plasma/grayscale), frequency/time axes in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
+- [x] T051 [US3] Implement color map lookup tables (viridis, magma, inferno, plasma, grayscale) as reusable utility in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
+- [x] T052 [US3] Wire SpectrumViewerBlock.vue to useAnalysisBlock() composable for pipeline:data event subscription and ring buffer management in frontend/src/components/blocks/analysis/SpectrumViewerBlock.vue
+- [x] T053 [US3] Add SpectrumViewerBlock import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T054 [US3] Add structured logging for spectrum viewer lifecycle in internal/analysis/spectrumviewer.go
 
 **Checkpoint**: Spectrum Viewer fully functional — test with Simulator → FFT → Spectrum Viewer workflow
 
@@ -189,19 +189,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T055 [P] [US6] Write unit tests for HexViewer analysis block verifying BufferConfig, Snapshot(), ring buffer byte limit enforcement, and raw data buffering in internal/analysis/hexviewer_test.go
-- [ ] T056 [P] [US6] Write unit tests for HexViewer byte pattern search matching hex patterns against buffered data in internal/analysis/hexviewer_test.go
+- [x] T055 [P] [US6] Write unit tests for HexViewer analysis block verifying BufferConfig, Snapshot(), ring buffer byte limit enforcement, and raw data buffering in internal/analysis/hexviewer_test.go
+- [x] T056 [P] [US6] Write unit tests for HexViewer byte pattern search matching hex patterns against buffered data in internal/analysis/hexviewer_test.go
 
 ### Implementation for User Story 6
 
-- [ ] T057 [US6] Implement HexViewer analysis block struct implementing AnalysisBlock interface with bounded ring buffer (maxBytes) in internal/analysis/hexviewer.go
-- [ ] T058 [US6] Implement HexViewer byte pattern search method operating on ring buffer contents in internal/analysis/hexviewer.go
-- [ ] T059 [US6] Register hex-viewer analysis block factory via registerAnalysis() in internal/analysis/hexviewer.go
-- [ ] T060 [US6] Create HexViewerBlock.vue with virtualized scrolling hex dump layout (offset | hex bytes | ASCII), auto-scroll, pause/resume toggle in frontend/src/components/blocks/analysis/HexViewerBlock.vue
-- [ ] T061 [US6] Implement byte pattern search UI (hex or ASCII input, match highlighting) in frontend/src/components/blocks/analysis/HexViewerBlock.vue
-- [ ] T062 [US6] Wire HexViewerBlock.vue to useAnalysisBlock() composable for pipeline:data event subscription with raw byte mode in frontend/src/components/blocks/analysis/HexViewerBlock.vue
-- [ ] T063 [US6] Add HexViewerBlock import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
-- [ ] T064 [US6] Add structured logging for hex viewer lifecycle in internal/analysis/hexviewer.go
+- [x] T057 [US6] Implement HexViewer analysis block struct implementing AnalysisBlock interface with bounded ring buffer (maxBytes) in internal/analysis/hexviewer.go
+- [x] T058 [US6] Implement HexViewer byte pattern search method operating on ring buffer contents in internal/analysis/hexviewer.go
+- [x] T059 [US6] Register hex-viewer analysis block factory via registerAnalysis() in internal/analysis/hexviewer.go
+- [x] T060 [US6] Create HexViewerBlock.vue with virtualized scrolling hex dump layout (offset | hex bytes | ASCII), auto-scroll, pause/resume toggle in frontend/src/components/blocks/analysis/HexViewerBlock.vue
+- [x] T061 [US6] Implement byte pattern search UI (hex or ASCII input, match highlighting) in frontend/src/components/blocks/analysis/HexViewerBlock.vue
+- [x] T062 [US6] Wire HexViewerBlock.vue to useAnalysisBlock() composable for pipeline:data event subscription with raw byte mode in frontend/src/components/blocks/analysis/HexViewerBlock.vue
+- [x] T063 [US6] Add HexViewerBlock import and mapping to configComponentMap in frontend/src/components/canvas/BlockNode.vue
+- [x] T064 [US6] Add structured logging for hex viewer lifecycle in internal/analysis/hexviewer.go
 
 **Checkpoint**: Hex Viewer fully functional — test with UART → Hex Viewer workflow
 
@@ -211,14 +211,14 @@
 
 **Purpose**: Integration validation and cross-story quality improvements.
 
-- [ ] T065 Validate end-to-end workflow: Bluetooth → Hex Viewer (raw byte display from BT device)
-- [ ] T066 [P] Validate end-to-end workflow: Simulator → Filter → Line Chart (all 4 filter modes)
-- [ ] T067 [P] Validate end-to-end workflow: Simulator → FFT → Spectrum Viewer (waterfall display)
-- [ ] T068 [P] Validate end-to-end workflow: Simulator + Simulator → Multiply → Line Chart (product)
-- [ ] T069 [P] Validate end-to-end workflow: Simulator → Derivative → Line Chart (rate of change)
-- [ ] T070 Validate compound workflow: Bluetooth → ByteParser → Filter → FFT → Spectrum Viewer
-- [ ] T071 Verify all 6 blocks persist and restore correctly in .byteflow workflow file (save/load)
-- [ ] T072 Run quickstart.md validation scenarios
+- [x] T065 Validate end-to-end workflow: Bluetooth → Hex Viewer (raw byte display from BT device)
+- [x] T066 [P] Validate end-to-end workflow: Simulator → Filter → Line Chart (all 4 filter modes)
+- [x] T067 [P] Validate end-to-end workflow: Simulator → FFT → Spectrum Viewer (waterfall display)
+- [x] T068 [P] Validate end-to-end workflow: Simulator + Simulator → Multiply → Line Chart (product)
+- [x] T069 [P] Validate end-to-end workflow: Simulator → Derivative → Line Chart (rate of change)
+- [x] T070 Validate compound workflow: Bluetooth → ByteParser → Filter → FFT → Spectrum Viewer
+- [x] T071 Verify all 6 blocks persist and restore correctly in .byteflow workflow file (save/load)
+- [x] T072 Run quickstart.md validation scenarios
 
 ---
 

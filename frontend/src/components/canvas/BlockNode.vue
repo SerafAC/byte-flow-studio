@@ -11,16 +11,22 @@ import { useWorkflowStore } from '../../stores/workflow'
 import UartBlockConfig from '../blocks/inputs/UartBlockConfig.vue'
 import SimulatorBlockConfig from '../blocks/inputs/SimulatorBlockConfig.vue'
 import WebSocketBlockConfig from '../blocks/inputs/WebSocketBlockConfig.vue'
+import BluetoothBlockConfig from '../blocks/inputs/BluetoothBlockConfig.vue'
 import MovingAverageConfig from '../blocks/processing/MovingAverageConfig.vue'
 import FFTConfig from '../blocks/processing/FFTConfig.vue'
 import ScalingConfig from '../blocks/processing/ScalingConfig.vue'
 import ByteParserConfig from '../blocks/processing/ByteParserConfig.vue'
 import SamplerConfig from '../blocks/processing/SamplerConfig.vue'
+import FilterConfig from '../blocks/processing/FilterConfig.vue'
+import DerivativeConfig from '../blocks/processing/DerivativeConfig.vue'
+import MultiplyConfig from '../blocks/processing/MultiplyConfig.vue'
 import LineChartBlock from '../blocks/analysis/LineChartBlock.vue'
 import BarChartBlock from '../blocks/analysis/BarChartBlock.vue'
 import FftSpectrumBlock from '../blocks/analysis/FftSpectrumBlock.vue'
 import ValueDisplayBlock from '../blocks/analysis/ValueDisplayBlock.vue'
 import DataTableBlock from '../blocks/analysis/DataTableBlock.vue'
+import SpectrumViewerBlock from '../blocks/analysis/SpectrumViewerBlock.vue'
+import HexViewerBlock from '../blocks/analysis/HexViewerBlock.vue'
 
 const props = defineProps<{ data: BlockDef }>()
 
@@ -47,6 +53,10 @@ const configComponentMap: Record<string, Component> = {
   'scaling': ScalingConfig,
   'byte-parser': ByteParserConfig,
   'sampler': SamplerConfig,
+  'bluetooth': BluetoothBlockConfig,
+  'multiply': MultiplyConfig,
+  'filter': FilterConfig,
+  'derivative': DerivativeConfig,
 }
 
 const configComponent = computed(() => configComponentMap[props.data.type] ?? null)
@@ -56,7 +66,9 @@ const analysisComponentMap: Record<string, Component> = {
   'bar-chart':    BarChartBlock,
   'fft-spectrum': FftSpectrumBlock,
   'value-display': ValueDisplayBlock,
-  'data-table':   DataTableBlock,
+  'data-table':       DataTableBlock,
+  'spectrum-viewer':  SpectrumViewerBlock,
+  'hex-viewer':       HexViewerBlock,
 }
 
 const analysisComponent = computed(() =>
@@ -70,7 +82,9 @@ const analysisMinDimensions: Record<string, { minWidth: number; minHeight: numbe
   'value-display': { minWidth: 140, minHeight: 100 },
   'bar-chart':     { minWidth: 240, minHeight: 160 },
   'fft-spectrum':  { minWidth: 240, minHeight: 200 },
-  'data-table':    { minWidth: 200, minHeight: 140 },
+  'data-table':       { minWidth: 200, minHeight: 140 },
+  'spectrum-viewer':  { minWidth: 280, minHeight: 200 },
+  'hex-viewer':       { minWidth: 320, minHeight: 200 },
 }
 
 const resizerMinWidth = computed(() => analysisMinDimensions[props.data.type]?.minWidth ?? 240)
@@ -192,14 +206,28 @@ function onOutputPortMouseUp(event: MouseEvent) {
       @resize-end="onResizeEnd"
     />
 
-    <!-- Input handle (left side) — hidden for input-category blocks -->
-    <Handle
-      v-if="data.category !== 'input'"
-      id="in"
-      type="target"
-      :position="Position.Left"
-      class="input-handle"
-    />
+    <!-- Input handles (left side) — hidden for input-category blocks -->
+    <!-- Multiply blocks get multiple named input handles; all others get a single "in" handle -->
+    <template v-if="data.category !== 'input'">
+      <template v-if="data.type === 'multiply'">
+        <Handle
+          v-for="i in (data.params?.inputCount ?? 2)"
+          :key="'in-' + (i - 1)"
+          :id="'in-' + (i - 1)"
+          type="target"
+          :position="Position.Left"
+          class="input-handle"
+          :style="{ top: (i / ((data.params?.inputCount ?? 2) + 1)) * 100 + '%' }"
+        />
+      </template>
+      <Handle
+        v-else
+        id="in"
+        type="target"
+        :position="Position.Left"
+        class="input-handle"
+      />
+    </template>
 
     <!-- Output handle (right side) — hidden for analysis-category blocks; merged with quick-add -->
     <div v-if="data.category !== 'analysis'" class="out-port-wrapper">
@@ -217,7 +245,7 @@ function onOutputPortMouseUp(event: MouseEvent) {
       ref="quickAddMenu"
       :source-block-id="data.id"
       source-port-id="out"
-      :source-data-type="data.category === 'input' && data.type === 'uart' ? 'raw' : 'numeric'"
+      :source-data-type="data.category === 'input' && (data.type === 'uart' || data.type === 'bluetooth') ? 'raw' : 'numeric'"
       :source-x="node?.position.x ?? 0"
       :source-y="node?.position.y ?? 0"
     />
