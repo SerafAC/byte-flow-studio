@@ -13,6 +13,8 @@ import ValueDisplayBlock from '../components/blocks/analysis/ValueDisplayBlock.v
 import DataTableBlock from '../components/blocks/analysis/DataTableBlock.vue'
 import BarChartBlock from '../components/blocks/analysis/BarChartBlock.vue'
 import FftSpectrumBlock from '../components/blocks/analysis/FftSpectrumBlock.vue'
+import SpectrumViewerBlock from '../components/blocks/analysis/SpectrumViewerBlock.vue'
+import HexViewerBlock from '../components/blocks/analysis/HexViewerBlock.vue'
 import { useWorkflowStore } from '../stores/workflow'
 import { usePipelineStore } from '../stores/pipeline'
 import { useSessionStore } from '../stores/session'
@@ -26,6 +28,8 @@ const analysisComponentMap: Record<string, Component> = {
   'data-table': DataTableBlock,
   'bar-chart': BarChartBlock,
   'fft-spectrum': FftSpectrumBlock,
+  'spectrum-viewer': SpectrumViewerBlock,
+  'hex-viewer': HexViewerBlock,
 }
 
 const toast = useToast()

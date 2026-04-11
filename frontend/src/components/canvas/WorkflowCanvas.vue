@@ -19,11 +19,13 @@ const { onNodesChange, onEdgesChange, onConnect, findNode, getSelectedNodes, get
 
 // Default dimensions for analysis blocks that haven't been resized yet
 const analysisDefaultDimensions: Record<string, { width: number; height: number }> = {
-  'line-chart':    { width: 320, height: 200 },
-  'value-display': { width: 180, height: 130 },
-  'bar-chart':     { width: 320, height: 200 },
-  'fft-spectrum':  { width: 360, height: 240 },
-  'data-table':    { width: 280, height: 180 },
+  'line-chart':       { width: 320, height: 200 },
+  'value-display':    { width: 180, height: 130 },
+  'bar-chart':        { width: 320, height: 200 },
+  'fft-spectrum':     { width: 360, height: 240 },
+  'data-table':       { width: 280, height: 180 },
+  'spectrum-viewer':  { width: 400, height: 280 },
+  'hex-viewer':       { width: 480, height: 300 },
 }
 
 const nodes = computed(() =>
@@ -64,7 +66,7 @@ function isValidConnection(conn: Connection): boolean {
   // Prevent self-connections
   if (conn.source === conn.target) return false
   // Only allow source handle ("out") → input handle ("in"); blocks output→output
-  return conn.sourceHandle === 'out' && conn.targetHandle === 'in'
+  return conn.sourceHandle === 'out' && (conn.targetHandle === 'in' || conn.targetHandle?.startsWith('in-'))
 }
 
 async function onConnectEdge(conn: Connection) {

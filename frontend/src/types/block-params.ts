@@ -45,3 +45,21 @@ export interface SamplerParams {
   n: number
   intervalMs: number
 }
+
+export interface FilterParams {
+  mode: 'lowpass' | 'highpass' | 'bandpass' | 'bandstop'
+  cutoffHz: number
+  cutoffLowHz: number
+  cutoffHighHz: number
+  order: number
+  sampleRateHz: number
+}
+
+export interface MultiplyParams {
+  inputCount: number
+}
+
+export interface BluetoothParams {
+  deviceAddress: string
+  serialPort: string
+}

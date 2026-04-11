@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"byteflow-studio/internal/input"
 	"byteflow-studio/internal/logging"
 	"byteflow-studio/internal/pipeline"
 	"byteflow-studio/internal/processing"
@@ -376,6 +377,18 @@ func (s *WorkflowService) ListSerialPorts() ([]SerialPortInfo, error) {
 	return result, nil
 }
 
+// ListBluetoothDevices returns paired Bluetooth devices from the host OS.
+func (s *WorkflowService) ListBluetoothDevices() ([]input.BluetoothDevice, error) {
+	s.log.Debug("enumerating bluetooth devices")
+	devices, err := input.ListBluetoothDevices()
+	if err != nil {
+		s.log.Error("failed to enumerate bluetooth devices", logging.KeyError, err)
+		return nil, err
+	}
+	s.log.Debug("bluetooth devices enumerated", "count", len(devices))
+	return devices, nil
+}
+
 // RestoreBlocks replaces the in-memory blocks and connections (used for undo/redo sync).
 func (s *WorkflowService) RestoreBlocks(blocks []workflow.BlockDef, connections []workflow.ConnectionDef) error {
 	if s.engine != nil && s.engine.GetState() == pipeline.FlowStateRunning {
@@ -601,6 +614,55 @@ func blockTypeDescriptors() []BlockTypeDescriptor {
 				"xLabel": "Frequency (Hz)", "yLabel": "Magnitude", "decimals": 2, "logScaleY": false,
 				"bufferMode": "samples", "bufferSamples": 10, "bufferDurationSec": 5.0,
 			},
+		},
+		{
+			Type:        "bluetooth",
+			Category:    pipeline.CategoryInput,
+			Label:       "Bluetooth (SPP)",
+			Description: "Read data from a paired Bluetooth SPP device",
+			DefaultParams: map[string]any{
+				"deviceAddress": "", "serialPort": "",
+			},
+		},
+		{
+			Type:        "multiply",
+			Category:    pipeline.CategoryProcessing,
+			Label:       "Signal Multiply",
+			Description: "Multiply two or more signal streams sample-by-sample",
+			DefaultParams: map[string]any{"inputCount": 2},
+		},
+		{
+			Type:        "filter",
+			Category:    pipeline.CategoryProcessing,
+			Label:       "Frequency Filter",
+			Description: "Apply a Butterworth frequency filter to a signal",
+			DefaultParams: map[string]any{
+				"mode": "lowpass", "cutoffHz": 100.0, "order": 2, "sampleRateHz": 1000.0,
+			},
+		},
+		{
+			Type:        "derivative",
+			Category:    pipeline.CategoryProcessing,
+			Label:       "Derivative",
+			Description: "Compute the rate of change of a signal over time",
+			DefaultParams: map[string]any{},
+		},
+		{
+			Type:        "spectrum-viewer",
+			Category:    pipeline.CategoryAnalysis,
+			Label:       "Spectrum Viewer",
+			Description: "Display frequency spectrum as a waterfall spectrogram",
+			DefaultParams: map[string]any{
+				"colorMap": "viridis", "minFreqHz": 0.0, "maxFreqHz": 0.0,
+				"minAmplitude": 0.0, "maxAmplitude": 0.0,
+			},
+		},
+		{
+			Type:        "hex-viewer",
+			Category:    pipeline.CategoryAnalysis,
+			Label:       "Hex Viewer",
+			Description: "Display raw data as a scrollable hex dump",
+			DefaultParams: map[string]any{"maxBytes": 65536, "bytesPerRow": 16},
 		},
 	}
 }
